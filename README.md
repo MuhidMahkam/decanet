@@ -1,108 +1,30 @@
-# Decanet
+cat > README.md <<'MD'
+# Decanet — Быстрый старт (инструкции)
 
-PHP/MariaDB проект для учета в деканате учебного заведения (учет контингента и успеваемости студентов)
+Этот репозиторий содержит legacy PHP приложение. Цель текущей ветки refactor/init — вынести schema+seed в SQL, добавить scaffold миграций (phinx) и CI.
 
-## Описание
+Быстрый локальный запуск (пример):
 
-Decanet — это веб-приложение для автоматизации учета контингента и успеваемости студентов 
+1) Скопируйте .env и настроьте подключение к БД
+   cp .env.example .env
+   # Отредактируйте DB_* переменные в .env
 
-## Требования
+2) Установите зависимости
+   composer install
 
-- PHP 7.4 или выше
-- MariaDB 10.3 или выше (или MySQL 5.7+)
-- Composer
-- Git
+3) Импортируйте схему и seed (временное решение — пока sql/schema.sql и sql/seed.sql содержат заглушки)
+   mysql -u $DB_USER -p $DB_NAME < sql/schema.sql
+   mysql -u $DB_USER -p $DB_NAME < sql/seed.sql
 
-## Установка
+4) (Опционально) Запустить phinx миграции (после настройки phinx.php)
+   vendor/bin/phinx migrate -c phinx.php
 
-### 1. Клонируйте репозиторий
+Что сделано в этой ветке refactor/init:
+- Добавлен phinx scaffold (phinx.php, db/migrations, db/seeds)
+- Добавлены sql/schema.sql и sql/seed.sql (плейсхолдеры) — нужно заменить реальными SQL из decanet_demo.zip
+- Добавлен базовый CI (.github/workflows/ci.yml)
+- Обновлён .gitignore
 
-```bash
-git clone https://github.com/MuhidMahkam/decanet.git
-cd decanet
-```
-
-### 2. Установите зависимости
-
-```bash
-composer install
-```
-
-### 3. Настройте окружение
-
-```bash
-cp .env.example .env
-```
-
-Отредактируйте `.env` с вашими параметрами базы данных и приложения.
-
-### 4. Создайте базу данных
-
-```bash
-mysql -u root -p < database.sql
-```
-
-### 5. Запустите приложение
-
-```bash
-php -S localhost:8000 -t public/
-```
-
-Откройте в браузере: http://localhost:8000
-
-## Структура проекта
-
-```
-decanet/
-├── public/          # Публичные файлы (index.php, CSS, JS, изображения)
-├── src/             # Исходный код приложения (PHP классы, логика)
-├── templates/       # HTML шаблоны (представления)
-├── vendor/          # Зависимости Composer (не коммитится)
-├── .env             # Переменные окружения (не коммитится)
-├── .gitignore       # Git конфигурация
-├── composer.json    # Зависимости проекта
-├── composer.lock    # Фиксированные версии зависимостей
-├── LICENSE          # Лицензия проекта
-└── README.md        # Этот файл
-```
-
-## Зависимости
-
-- **chillerlan/php-qrcode** — Генерация QR кодов
-- **chillerlan/php-authenticator** — 2FA аутентификация
-
-Полный список см. в `composer.json`
-
-## Использование
-
-[Добавьте инструкции по использованию приложения]
-
-## Разработка
-
-### Запуск тестов
-
-```bash
-composer test
-```
-
-### Проверка кода
-
-```bash
-composer lint
-```
-
-## Лицензия
-
-[Укажите лицензию из файла LICENSE]
-
-## Контакты
-
-- Автор: MuhidMahkam
-- GitHub: https://github.com/MuhidMahkam
-
-## TODO
-
-- [ ] Добавить юнит тесты
-- [ ] Добавить интеграционные тесты
-- [ ] Документировать API
-- [ ] Добавить CI/CD через GitHub Actions
+Дальше:
+- Я предлагаю заменить плейсхолдеры на реальные SQL — для этого распакую decanet_demo.zip и извлеку SQL, затем обновлю sql/schema.sql и sql/seed.sql в отдельном PR.
+MD

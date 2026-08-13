@@ -1,6 +1,13 @@
-﻿vendor/
-/node_modules/
-.env
-*.log
-/.idea/
-/.vscode/
+﻿# Ignore binary dump and local artifacts
+# Keep the canonical SQL files in repo instead of the large zip
+sql/decanet_demo.zip
+
+# Ignore local composer binary if present
+/src/composer.phar
+/src/composer.lock
+
+# Other typical ignores
+/vendor
+/.idea
+/.vscode
+/.env
