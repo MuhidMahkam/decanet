@@ -1,0 +1,38 @@
+name: Validate SQL import
+
+on:
+  push:
+    paths:
+      - 'sql/**'
+  workflow_dispatch:
+
+jobs:
+  import-sql:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install mysql client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y default-mysql-client
+      - name: Wait for MySQL
+        run: |
+          until mysql -h127.0.0.1 -uroot -proot -e "SELECT 1" >/dev/null 2>&1; do sleep 1; done
+      - name: Create test DB and import schema+seed
+        run: |
+          mysql -h127.0.0.1 -uroot -proot -e "CREATE DATABASE IF NOT EXISTS decanet_test CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
+          mysql -h127.0.0.1 -uroot -proot decanet_test < sql/schema.sql
+          mysql -h127.0.0.1 -uroot -proot decanet_test < sql/seed.sql
+      - name: Quick smoke queries
+        run: |
+          mysql -h127.0.0.1 -uroot -proot decanet_test -e "SELECT COUNT(*) AS abit_count FROM acad;"
