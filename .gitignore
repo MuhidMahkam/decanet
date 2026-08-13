@@ -4,3 +4,7 @@
 *.log
 /.idea/
 /.vscode/
+
+# Ignore bundled composer artifacts
+/src/composer.phar
+/src/composer.lock
