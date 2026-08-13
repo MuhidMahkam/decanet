@@ -1,0 +1,200 @@
+<style>
+
+  :link { color: #00C; background: transparent;FONT-SIZE: 12pt; }
+  :visited { color: #00C; background: transparent;FONT-SIZE: 12pt; }
+  a:active { color: #00C; background: transparent;FONT-SIZE: 12pt; }
+
+  a:link img, a:visited img {border-style: none;padding:0;margin:0; } /* no border on img links */
+
+  /*  #notborder{border-width:0px;}*/
+  #main{background-image:url(themes/1/f_011.jpg);}
+  #help{background-image:url(f_011.jpg);}
+  #menu{background-image:url(themes/1/f_017.jpg); empty-cells: show;}
+  #curmenu{background-color:white;}
+  #page{background-color:#E2E2FF;}
+  #page1{padding:0;margin:0;}
+  #prochead{font-size: 15pt;padding:0;margin:0;}
+  #ldan{background-color:#DBFFD9;padding:0;margin:0;}
+  #col1{background-color:#ECFFEB;}
+  #col2{background-color:#DBFFD9;}
+  #col3{background-color:#FFF0EB;}
+  #col4{background-color:#FFE2D9;}
+  #col5{background-color:#EBF0FF;}
+  #col6{background-color:#D9E2FF;}
+  #col7{background-color:#FF0000;}
+  #redtext{color:red;}
+  #greentext{color:green;}
+  #redfon{background-color:red;}
+
+  #polev1,#polev3,#polev10,#polev15,#polev20,#polev80{
+    text-align:left;
+    background-color:#DBFFD9;
+    border-style:inset;
+    border-width:1px;
+    margin-bottom:1px;
+    margin-top:2px;
+  }
+
+  #polev1{width:10mm;}
+  #polev3{width:15mm;}
+  #polev10{width:23mm;}
+  #polev15{width:33mm;}
+  #polev20{width:40mm;}
+  #polev80{width:134mm;}
+
+  #hbar{height:50px;}
+  #tbar,#vbar{empty-cells:show;border-collapse:collapse;}
+  #vbar{width:50px;}
+  #h1b,#h2b,#h3b,#h4b,
+  #h1w,#h2w,#h3w,#h4w{border-left-style:solid;padding:0;margin:0;width:0;}
+  #v1b,#v2b,#v3b,#v4b,
+  #v1w,#v2w,#v3w,#v4w{border-top-style:solid;padding:0;margin:0;height:0;}
+  #h1b,#h2b,#h3b,#h4b,#v1b,#v2b,#v3b,#v4b{border-color:black;}
+  #h1w,#h2w,#h3w,#h4w,#v1w,#v2w,#v3w,#v4w{border-color:white;}
+  #h1b,#h1w{border-left-width:1px;}
+  #h2b,#h2w{border-left-width:2px;}
+  #h3b,#h3w{border-left-width:3px;}
+  #h4b,#h4w{border-left-width:4px;}
+  #v1b,#v1w{border-top-width:1px;}
+  #v2b,#v2w{border-top-width:2px;}
+  #v3b,#v3w{border-top-width:3px;}
+  #v4b,#v4w{border-top-width:4px;}
+
+  #calendar{width:5cm;}
+  #curhr{border:1px solid black;background-color:lightgreen;}
+  #head{
+    writing-mode:lr-tb;
+    /* text-align: center;*/
+    background-color:#E5E5E5;
+  }
+
+  #t_mprog,#tabotchet,#ekzlist,#sprav1,#sprav2{
+    FONT-FAMILY: TimesNR;
+    FONT-SIZE: 11pt;
+    FONT-WEIGHT: normal;
+    table-layout: fixed;
+    empty-cells: show;
+    border-collapse: collapse;
+    line-height: 20px;
+    width: 19cm;
+  }
+
+  #svodka{
+    FONT-FAMILY: TimesNR;
+    FONT-SIZE: 11pt;
+    FONT-WEIGHT: normal;
+    empty-cells: show;
+    border-collapse: collapse;
+    border-color:black;
+    line-height: 20px;
+  }
+
+  #tabl1  
+  {
+    empty-cells: show;
+    border-style:inset;
+    border-width:1px;
+    border:1px;
+    /*  border-style:solid;*/
+    border-color:black;
+    border-collapse: collapse;
+  }
+
+  #sprav1{width: 14cm;}
+  #sprav2{width: 18cm;}
+
+  #t_mprog{FONT-SIZE: 9pt;line-height: 10px;}
+
+  #tbrl{writing-mode:tb-rl;}
+
+  #bord, #bord_tbrl, #bord_tb, #bord_tb_tbrl,
+  #bord_t, #bord_b, #bord_r, #bord_l,
+  #bord_lr, #bord_ltb, #bord_tr, #bord_br
+    {border-width:0; border-style:solid; border-color:black;}
+  #bord_tbrl, #bord_tb_tbrl {writing-mode:tb-rl;}
+
+  #bord,#bord_tbrl{border-top-width:1px;border-left-width:1px;border-right-width:1px;border-bottom-width:1px;}
+
+  #bord_t{border-top-width:1px;}
+  #bord_b{border-bottom-width:1px;}
+  #bord_r{border-right-width:1px;}
+  #bord_l{border-left-width:1px;}
+
+  #bord_tb, #bord_tb_tbrl{border-top-width:1px; border-bottom-width:1px;}
+  #bord_lr{border-left-width:1px;border-right-width:1px;}
+  #bord_tr{border-top-width:1px;border-right-width:1px;}
+  #bord_br{border-bottom-width:1px;border-right-width:1px;}
+
+
+  #width1{width: 1cm;}
+  #width2{width: 2cm;}
+  #width3, #width3r{width: 3cm;}
+  #width3r{FONT-SIZE: 9pt;text-align: right;line-height: 18px;}
+  #width15{width: 15mm;}
+  #width10{width: 10cm;}
+  #width4{width: 4cm;}
+  #width7{width: 6cm;}
+  #width13{width: 13cm;}
+  #width05{width: 5mm;}
+  #width03{width: 3mm;}
+  #width8{width: 8cm;}
+  #l{text-align: left;}
+  #r{text-align: right;}
+  #c{text-align: center;}
+  #small{FONT-SIZE: 9pt;text-align: center;vertical-align: text-top;line-height: 14px;}
+  #big, #med, #left{FONT-SIZE: 11pt;font: bold;padding-bottom: 5px;line-height: 15pt;}
+  #big, #b14, #med {text-align: center;}
+  #big{FONT-SIZE: 15pt;}
+  #b14{FONT-SIZE: 14pt;}
+  #med {font: italic;padding-bottom: 10px;}
+  #pad{padding-top: 10px;}
+  #bold{font:bold;}
+  .vabottom{vertical-align: middle;margin-left: 10px;}
+  #tleft, #tcenter, #tright{border-style: solid;border-width: thin}
+  #tcenter{text-align: center}
+  #tright{text-align: right;padding-left: 1px;}
+  #brpage{page-break-before: always;}
+  #padtop, #padtext{padding-top: 50px;}
+  #padtext{FONT-SIZE: 9pt;line-height: 14px;}
+  #padleft{padding-left: 50px;}
+  #podch{line-height: 10pt; FONT-SIZE: 11pt;font: bold;border-bottom-style:solid;border-bottom-width:2px;}
+  #gorod{FONT-SIZE: 14pt;text-align: center;border-bottom-style:solid;border-bottom-width:2px;}
+  #notprint{background-color:#FFE2D9;}
+  /*  @page{size:landscape;}*/
+</style>
+<style>
+   #authenticator-qrcode{
+   	width: 200px;
+   	margin: 2em auto;
+   }
+   #secret{
+   	box-sizing: border-box;
+   	display: inline-block;
+   	width: 100%;
+   	font-size: 20px;
+   }
+
+   /* styles for the embedded SVG QR code */
+   .my-qrcode.qr-svg{
+   	margin-bottom: 1em;
+   	/* background: #eee;  example for https://github.com/chillerlan/php-qrcode/discussions/199 */
+        imageTransparent:  true
+   }
+   .my-qrcode.qr-data-dark{
+   	fill: url(#gradient); /* the gradient defined in the SVG defs */
+   }
+
+   .my-qrcode > defs > #gradient > #stop1{
+   	stop-color: #D70071;
+   }
+   .my-qrcode > defs > #gradient > #stop2{
+   	stop-color: #9C4E97;
+   }
+   .my-qrcode > defs > #gradient > #stop3{
+   	stop-color: #0035A9;
+   }
+</style>
+
+<style media=print>
+  #notprint{display: none;}
+</style>
