@@ -35,4 +35,4 @@ jobs:
           mysql -h127.0.0.1 -uroot -proot decanet_test < sql/seed.sql
       - name: Quick smoke queries
         run: |
-          mysql -h127.0.0.1 -uroot -proot decanet_test -e "SELECT COUNT(*) AS abit_count FROM acad;"
+          mysql -h127.0.0.1 -uroot -proot decanet_test -e "SELECT COUNT(*) AS acad_count FROM acad;"
