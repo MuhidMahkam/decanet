@@ -33,39 +33,72 @@ jobs:
           sleep 3
           echo "Started mysql container: $(sudo docker ps --filter name=mysql-test -q || true)"
 
-      - name: Wait for MySQL (with timeout & diagnostics)
+      - name: Wait for MySQL (robust diagnostics)
         run: |
           set -euo pipefail
           START=$(date +%s)
           TIMEOUT=$((5*60))   # 5 minutes
           echo "Waiting up to ${TIMEOUT}s for MySQL to accept connections..."
+
+          # Найдём контейнер сервиса (по образу или по имени pattern)
+          CID=""
+          for i in $(seq 1 5); do
+            CID=$(sudo docker ps -a --filter ancestor=mysql:8.0 -q | head -n1 || true)
+            if [ -n "$CID" ]; then break; fi
+            CID=$(sudo docker ps -a --filter name=mysql -q | head -n1 || true)
+            if [ -n "$CID" ]; then break; fi
+            sleep 1
+          done
+          echo "Detected container id: $CID"
+
           while true; do
-            if sudo docker exec mysql-test mysqladmin ping -uroot -proot >/dev/null 2>&1; then
-              echo "MySQL is up"
+            # 1) Проверка внутри контейнера (наиболее надёжная)
+            if [ -n "$CID" ] && sudo docker exec "$CID" mysqladmin ping -uroot -proot >/dev/null 2>&1; then
+              echo "OK: mysqladmin ping succeeded *inside* container"
               break
             fi
+
+            # 2) Попробуем получить проброшенный на хост порт (если есть)
+            HOST_PORT=""
+            if [ -n "$CID" ]; then
+              # output: 0.0.0.0:32768  или 127.0.0.1:3306
+              MAP=$(sudo docker port "$CID" 3306/tcp || true)
+              echo "docker port result: '$MAP'"
+              HOST_PORT=$(echo "$MAP" | sed -E 's/.*:([0-9]+)$/\1/' || true)
+            fi
+            if [ -n "$HOST_PORT" ]; then
+              echo "Trying TCP to 127.0.0.1:$HOST_PORT ..."
+              if mysqladmin ping -h127.0.0.1 -P"$HOST_PORT" -uroot -proot >/dev/null 2>&1; then
+                echo "OK: mysqladmin ping succeeded on 127.0.0.1:$HOST_PORT"
+                break
+              fi
+            fi
+
+            # 3) Попробуем подключиться по сервисному hostname (имя контейнера/алиас)
+            echo "Trying TCP to hostname 'mysql' port 3306 ..."
+            if mysqladmin ping -hmysql -P3306 -uroot -proot >/dev/null 2>&1; then
+              echo "OK: mysqladmin ping succeeded on host 'mysql':3306"
+              break
+            fi
+
+            # Неуспех — проверяем таймаут и ждем
             NOW=$(date +%s)
             ELAPSED=$((NOW-START))
             echo "MySQL not ready yet (elapsed ${ELAPSED}s)..."
             if [ "${ELAPSED}" -ge "${TIMEOUT}" ]; then
               echo "Timed out waiting for MySQL after ${TIMEOUT}s. Dumping diagnostics..."
-              echo "=== docker ps -a ==="
-              sudo docker ps -a || true
-              echo "=== docker images (mysql*) ==="
-              sudo docker images --filter=reference='mysql*' || true
-              CID=$(sudo docker ps -a --filter name=mysql-test -q || true)
-              echo "Detected mysql container id: $CID"
-              if [ -n "$CID" ]; then
-                echo "=== docker inspect (state) ==="
-                sudo docker inspect --format '{{json .State}}' $CID || true
-                echo "=== docker logs (last 500 lines) ==="
-                sudo docker logs --tail 500 $CID || true
-              fi
+              echo "=== docker ps -a ==="; sudo docker ps -a || true
+              echo "=== docker inspect (state) ==="; if [ -n "$CID" ]; then sudo docker inspect --format '{{json .State}}' "$CID" || true; fi
+              echo "=== docker logs (last 500 lines) ==="; if [ -n "$CID" ]; then sudo docker logs --tail 500 "$CID" || true; fi
+              echo "=== docker port mapping (all containers) ==="; sudo docker ps -q | xargs -n1 sudo docker port || true
+              echo "=== Listening TCP sockets ==="; ss -ltnp || true
               exit 1
             fi
+
             sleep 5
           done
 
+          echo "MySQL ready; continuing..."
       - name: Create test DB and import schema + seed
         run: |
           echo "Creating database decanet_test..."

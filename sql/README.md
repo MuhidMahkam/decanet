@@ -23,7 +23,6 @@ mysql -u root -p decanet_test < sql/seed.sql
 mysql -u root -p decanet_test < sql/dc_version.sql
 mysql -u root -p decanet_test < sql/dc_procs_mardb_ux.sql 
 
-
 ```bash
 mysql -u root -p decanet_test < sql/schema.sql
 mysql -u root -p decanet_test < sql/seed.sql
