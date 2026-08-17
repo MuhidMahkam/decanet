@@ -28,7 +28,7 @@ CREATE TABLE abit (
   ABIT_RATE int(11) NOT NULL,
   PRIMARY KEY (ABIT_ID),
   UNIQUE KEY UIDX_ABIT (ABIT_ABBR)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
