@@ -27,6 +27,25 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y default-mysql-client jq
 
+      - name: Debug docker / MySQL service (pre-wait)
+        run: |
+          echo "=== docker ps -a ==="
+          sudo docker ps -a || true
+          echo "=== docker images (mysql-related) ==="
+          sudo docker images --filter=reference='mysql*' || true
+          # Найдём контейнер(ы) по образу mysql:8.0 и выведем логи (последние 500 строк)
+          CID=$(sudo docker ps -a --filter ancestor=mysql:8.0 -q | head -n1 || true)
+          echo "Detected mysql container id: $CID"
+          if [ -n "$CID" ]; then
+            echo "=== docker inspect (state) ==="
+            sudo docker inspect --format '{{json .State}}' $CID || true
+            echo "=== docker logs (last 500 lines) ==="
+            sudo docker logs --tail 500 $CID || true
+          else
+            echo "No mysql:8.0 container found yet. Showing all containers:"
+            sudo docker ps -a || true
+          fi
+
       - name: Wait for MySQL (with timeout and diagnostics)
         run: |
           set -euo pipefail
