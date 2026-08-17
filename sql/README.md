@@ -1,5 +1,5 @@
 # SQL schema and seed
-
+                                                             	
 This directory contains the authoritative SQL schema (sql/schema.sql) and seed data (sql/seed.sql) for the project.
 
 Guidelines
@@ -17,6 +17,17 @@ mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS decanet_test CHARACTER SET ut
 ```bash
 mysql -u root -p decanet_test < sql/schema.sql
 mysql -u root -p decanet_test < sql/seed.sql
+
+3.Update schema version and stored procs :
+
+mysql -u root -p decanet_test < sql/dc_version.sql
+mysql -u root -p decanet_test < sql/dc_procs_mardb_ux.sql 
+
+
+```bash
+mysql -u root -p decanet_test < sql/schema.sql
+mysql -u root -p decanet_test < sql/seed.sql
+
 
 Quick checks:
 

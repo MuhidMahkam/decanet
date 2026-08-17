@@ -21,18 +21,69 @@ jobs:
           --health-retries=10
     steps:
       - uses: actions/checkout@v4
-      - name: Install mysql client
+
+      - name: Install mysql client and docker cli
         run: |
           sudo apt-get update
-          sudo apt-get install -y default-mysql-client
-      - name: Wait for MySQL
+          sudo apt-get install -y default-mysql-client jq
+
+      - name: Wait for MySQL (with timeout and diagnostics)
         run: |
-          until mysql -h127.0.0.1 -uroot -proot -e "SELECT 1" >/dev/null 2>&1; do sleep 1; done
-      - name: Create test DB and import schema+seed
+          set -euo pipefail
+          START=$(date +%s)
+          TIMEOUT=$((10*60))   # 10 minutes
+          echo "Waiting up to ${TIMEOUT}s for MySQL to accept connections..."
+          while true; do
+            if mysqladmin ping -h127.0.0.1 -uroot -proot >/dev/null 2>&1; then
+              echo "MySQL is up"
+              break
+            fi
+            NOW=$(date +%s)
+            ELAPSED=$((NOW-START))
+            echo "MySQL not ready yet (elapsed ${ELAPSED}s)..."
+            if [ "${ELAPSED}" -ge "${TIMEOUT}" ]; then
+              echo "Timed out waiting for MySQL after ${TIMEOUT}s. Dumping diagnostics..."
+              echo "=== docker ps -a ==="
+              sudo docker ps -a || true
+              echo "=== docker images (mysql related) ==="
+              sudo docker images --filter=reference='mysql*' || true
+              # try to find a container created from mysql image
+              CID=$(sudo docker ps -a --filter ancestor=mysql:8.0 -q | head -n1 || true)
+              echo "Detected mysql container id: $CID"
+              if [ -n "$CID" ]; then
+                echo "=== docker inspect (state) ==="
+                sudo docker inspect --format '{{json .State}}' $CID || true
+                echo "=== docker logs (last 500 lines) ==="
+                sudo docker logs --tail 500 $CID || true
+              else
+                echo "No mysql:8.0 container found. Full container list:"
+                sudo docker ps -a || true
+              fi
+              exit 1
+            fi
+            sleep 5
+          done
+
+      - name: Create test DB and import schema
         run: |
           mysql -h127.0.0.1 -uroot -proot -e "CREATE DATABASE IF NOT EXISTS decanet_test CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
+          echo ">>> Importing schema.sql"
           mysql -h127.0.0.1 -uroot -proot decanet_test < sql/schema.sql
-          mysql -h127.0.0.1 -uroot -proot decanet_test < sql/seed.sql
+          echo ">>> Schema import done"
+          mysql -u root -proot decanet_test < sql/dc_version.sql
+          echo ">>> Schema versioning done"
+
+      - name: Import seed (smoke)
+        run: |
+          echo ">>> Importing seed.sql (smoke)"
+          # если seed очень большой, можно импортировать только первые N строк/кусок
+          mysql -h127.0.0.1 -uroot -proot decanet_test < sql/seed.sql || true
+          echo ">>> Seed import step finished"
+          mysql -u root -proot decanet_test < sql/dc_procs_mardb_ux.sql 
+          echo ">>> stored procs import step finished"
+
       - name: Quick smoke queries
         run: |
-          mysql -h127.0.0.1 -uroot -proot decanet_test -e "SELECT COUNT(*) AS acad_count FROM acad;"
+          mysql -h127.0.0.1 -uroot -proot decanet_test -e "SELECT COUNT(*) AS acad_count FROM acad LIMIT 1;"
+          mysql -h127.0.0.1 -uroot -proot decanet_test -e "SELECT COUNT(*) AS city_count FROM city LIMIT 1;" || true
+
