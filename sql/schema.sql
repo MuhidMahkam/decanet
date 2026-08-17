@@ -1,3 +1,4 @@
+
 -- MariaDB dump 10.19-12.1.2-MariaDB, for Win64 (AMD64)
 --
 -- Host: localhost    Database: decanet

@@ -100,16 +100,51 @@ jobs:
           done
 
           echo "MySQL ready; continuing..."
+
       - name: Create test DB and import schema + seed
         run: |
-          echo "Creating database decanet_test..."
-          sudo docker exec -i mysql-test mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS decanet_test CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
-          echo "Importing schema.sql..."
-          sudo docker exec -i mysql-test sh -c 'exec mysql -uroot -proot decanet_test' < sql/schema.sql
-          echo "Importing seed.sql (smoke)..."
-          sudo docker exec -i mysql-test sh -c 'exec mysql -uroot -proot decanet_test' < sql/seed.sql || true
-          echo "Quick checks..."
-          sudo docker exec mysql-test mysql -uroot -proot -e "SELECT COUNT(*) AS city_count FROM city LIMIT 1;" decanet_test || true
+          set -euxo pipefail
+
+          echo "1) Detecting available MySQL access method..."
+
+          # Try service hostname first (services.mysql → hostname mysql)
+          if mysql -hmysql -uroot -proot -e "SELECT 1" >/dev/null 2>&1; then
+            CLIENT="mysql -hmysql -uroot -proot"
+            echo "Using client: $CLIENT"
+          # Then try localhost (if port was published)
+          elif mysql -h127.0.0.1 -uroot -proot -e "SELECT 1" >/dev/null 2>&1; then
+            CLIENT="mysql -h127.0.0.1 -uroot -proot"
+            echo "Using client: $CLIENT"
+          else
+            # Fallback: try to find container from mysql image and run inside it
+            CID=$(sudo docker ps -a --filter ancestor=mysql:8.0 -q | head -n1 || true)
+            if [ -n "$CID" ]; then
+              echo "No direct host/client access — will run commands inside container $CID"
+              echo "Creating database decanet_test inside container..."
+              sudo docker exec -i "$CID" mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS decanet_test CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
+              echo "Importing schema.sql inside container..."
+              sudo docker exec -i "$CID" sh -c 'exec mysql -uroot -proot decanet_test' < sql/schema.sql
+              echo "Importing seed.sql (smoke) inside container..."
+              sudo docker exec -i "$CID" sh -c 'exec mysql -uroot -proot decanet_test' < sql/seed.sql || true
+              echo "Completed import inside container."
+              exit 0
+            else
+              echo "ERROR: Cannot reach MySQL (no mysql host, no localhost port, no mysql container found)" >&2
+              exit 1
+            fi
+          fi
+
+          echo "2) Ensuring decanet_test database exists via $CLIENT"
+          $CLIENT -e "CREATE DATABASE IF NOT EXISTS decanet_test CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
+
+          echo "3) Importing schema.sql via $CLIENT"
+          $CLIENT decanet_test < sql/schema.sql
+
+          echo "4) Importing seed.sql (smoke) via $CLIENT (errors ignored)"
+          $CLIENT decanet_test < sql/seed.sql || true
+
+          echo "5) Quick smoke checks"
+          $CLIENT decanet_test -e "SELECT COUNT(*) AS city_count FROM city LIMIT 1;" || true
 
       - name: Cleanup mysql container
         if: always()
