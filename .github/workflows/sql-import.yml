@@ -20,7 +20,8 @@ jobs:
       - name: Pull and run MySQL container
         run: |
           set -euxo pipefail
-          IMAGE="mariadb:12.1.2"
+          #IMAGE="mariadb:12.1.2"
+          IMAGE="mysql:8.0"
           echo "Pulling $IMAGE..."
           sudo docker pull "$IMAGE"
           # remove any previous container with same name
