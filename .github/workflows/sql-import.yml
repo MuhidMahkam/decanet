@@ -46,11 +46,11 @@ jobs:
             sudo docker ps -a || true
           fi
 
-      - name: Wait for MySQL (with timeout and diagnostics)
+      - name: Wait for MySQL (with timeout & diagnostics)
         run: |
           set -euo pipefail
           START=$(date +%s)
-          TIMEOUT=$((10*60))   # 10 minutes
+          TIMEOUT=$((5*60))   # 5 minutes
           echo "Waiting up to ${TIMEOUT}s for MySQL to accept connections..."
           while true; do
             if mysqladmin ping -h127.0.0.1 -uroot -proot >/dev/null 2>&1; then
@@ -64,7 +64,7 @@ jobs:
               echo "Timed out waiting for MySQL after ${TIMEOUT}s. Dumping diagnostics..."
               echo "=== docker ps -a ==="
               sudo docker ps -a || true
-              echo "=== docker images (mysql related) ==="
+              echo "=== docker images (mysql-related) ==="
               sudo docker images --filter=reference='mysql*' || true
               # try to find a container created from mysql image
               CID=$(sudo docker ps -a --filter ancestor=mysql:8.0 -q | head -n1 || true)
@@ -75,7 +75,7 @@ jobs:
                 echo "=== docker logs (last 500 lines) ==="
                 sudo docker logs --tail 500 $CID || true
               else
-                echo "No mysql:8.0 container found. Full container list:"
+                echo "No mysql:8.0 container found. Showing all containers:"
                 sudo docker ps -a || true
               fi
               exit 1
