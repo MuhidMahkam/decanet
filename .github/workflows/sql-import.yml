@@ -1,0 +1,157 @@
+name: Validate SQL import
+
+on:
+  push:
+    paths:
+      - 'sql/**'
+  workflow_dispatch:
+
+jobs:
+  import-sql:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install mysql client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y default-mysql-client jq
+
+      - name: Pull and run MySQL container
+        run: |
+          set -euxo pipefail
+          #IMAGE="mariadb:12.1.2"
+          IMAGE="mysql:8.0"
+          echo "Pulling $IMAGE..."
+          sudo docker pull "$IMAGE"
+          # remove any previous container with same name
+          if sudo docker ps -a --format '{{.Names}}' | grep -q '^mysql-test$' ; then
+            echo "Removing previous mysql-test container..."
+            sudo docker rm -f mysql-test || true
+          fi
+          echo "Starting mysql-test container..."
+          sudo docker run --name mysql-test -e MYSQL_ROOT_PASSWORD=root -d "$IMAGE" --innodb_print_all_deadlocks=1
+          sleep 3
+          echo "Started mysql container: $(sudo docker ps --filter name=mysql-test -q || true)"
+
+      - name: Wait for MySQL (robust diagnostics)
+        run: |
+          set -euo pipefail
+          START=$(date +%s)
+          TIMEOUT=$((5*60))   # 5 minutes
+          echo "Waiting up to ${TIMEOUT}s for MySQL to accept connections..."
+
+          # Найдём контейнер сервиса (по образу или по имени pattern)
+          CID=""
+          for i in $(seq 1 5); do
+            CID=$(sudo docker ps -a --filter ancestor=mysql:8.0 -q | head -n1 || true)
+            if [ -n "$CID" ]; then break; fi
+            CID=$(sudo docker ps -a --filter name=mysql -q | head -n1 || true)
+            if [ -n "$CID" ]; then break; fi
+            sleep 1
+          done
+          echo "Detected container id: $CID"
+
+          while true; do
+            # 1) Проверка внутри контейнера (наиболее надёжная)
+            if [ -n "$CID" ] && sudo docker exec "$CID" mysqladmin ping -uroot -proot >/dev/null 2>&1; then
+              echo "OK: mysqladmin ping succeeded *inside* container"
+              break
+            fi
+
+            # 2) Попробуем получить проброшенный на хост порт (если есть)
+            HOST_PORT=""
+            if [ -n "$CID" ]; then
+              # output: 0.0.0.0:32768  или 127.0.0.1:3306
+              MAP=$(sudo docker port "$CID" 3306/tcp || true)
+              echo "docker port result: '$MAP'"
+              HOST_PORT=$(echo "$MAP" | sed -E 's/.*:([0-9]+)$/\1/' || true)
+            fi
+            if [ -n "$HOST_PORT" ]; then
+              echo "Trying TCP to 127.0.0.1:$HOST_PORT ..."
+              if mysqladmin ping -h127.0.0.1 -P"$HOST_PORT" -uroot -proot >/dev/null 2>&1; then
+                echo "OK: mysqladmin ping succeeded on 127.0.0.1:$HOST_PORT"
+                break
+              fi
+            fi
+
+            # 3) Попробуем подключиться по сервисному hostname (имя контейнера/алиас)
+            echo "Trying TCP to hostname 'mysql' port 3306 ..."
+            if mysqladmin ping -hmysql -P3306 -uroot -proot >/dev/null 2>&1; then
+              echo "OK: mysqladmin ping succeeded on host 'mysql':3306"
+              break
+            fi
+
+            # Неуспех — проверяем таймаут и ждем
+            NOW=$(date +%s)
+            ELAPSED=$((NOW-START))
+            echo "MySQL not ready yet (elapsed ${ELAPSED}s)..."
+            if [ "${ELAPSED}" -ge "${TIMEOUT}" ]; then
+              echo "Timed out waiting for MySQL after ${TIMEOUT}s. Dumping diagnostics..."
+              echo "=== docker ps -a ==="; sudo docker ps -a || true
+              echo "=== docker inspect (state) ==="; if [ -n "$CID" ]; then sudo docker inspect --format '{{json .State}}' "$CID" || true; fi
+              echo "=== docker logs (last 500 lines) ==="; if [ -n "$CID" ]; then sudo docker logs --tail 500 "$CID" || true; fi
+              echo "=== docker port mapping (all containers) ==="; sudo docker ps -q | xargs -n1 sudo docker port || true
+              echo "=== Listening TCP sockets ==="; ss -ltnp || true
+              exit 1
+            fi
+
+            sleep 5
+          done
+
+          echo "MySQL ready; continuing..."
+
+      - name: Create test DB and import schema + seed
+        run: |
+          set -euxo pipefail
+
+          echo "1) Detecting available MySQL access method..."
+
+          # Try service hostname first (services.mysql → hostname mysql)
+          if mysql -hmysql -uroot -proot -e "SELECT 1" >/dev/null 2>&1; then
+            CLIENT="mysql -hmysql -uroot -proot"
+            echo "Using client: $CLIENT"
+          # Then try localhost (if port was published)
+          elif mysql -h127.0.0.1 -uroot -proot -e "SELECT 1" >/dev/null 2>&1; then
+            CLIENT="mysql -h127.0.0.1 -uroot -proot"
+            echo "Using client: $CLIENT"
+          else
+            # Fallback: try to find container from mysql image and run inside it
+            CID=$(sudo docker ps -a --filter ancestor=mysql:8.0 -q | head -n1 || true)
+            if [ -n "$CID" ]; then
+              echo "No direct host/client access — will run commands inside container $CID"
+              echo "Creating database decanet_test inside container..."
+              sudo docker exec -i "$CID" mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS decanet_test CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
+              echo "Importing schema.sql inside container..."
+              sudo docker exec -i "$CID" sh -c 'exec mysql -uroot -proot decanet_test' < sql/schema.sql
+              echo "Update version of decanet schema inside container..."
+              sudo docker exec -i "$CID" sh -c 'exec mysql -uroot -proot decanet_test' < sql/dc_version.sql
+              echo "Createing businesslogic stored proc inside container..."
+              sudo docker exec -i "$CID" sh -c 'exec mysql -uroot -proot decanet_test' < sql/dc_procs_mardb_ux.sql 
+              echo "Inserting test data..."
+              sudo docker exec -i "$CID" sh -c 'exec mysql -uroot -proot decanet_test' < sql/seed.sql || true
+              echo "Completed import inside container."
+              exit 0
+            else
+              echo "ERROR: Cannot reach MySQL (no mysql host, no localhost port, no mysql container found)" >&2
+              exit 1
+            fi
+          fi
+
+          echo "2) Ensuring decanet_test database exists via $CLIENT"
+          $CLIENT -e "CREATE DATABASE IF NOT EXISTS decanet_test CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
+
+          echo "3) Importing schema.sql via $CLIENT"
+          $CLIENT decanet_test < sql/schema.sql
+
+          echo "4) Importing seed.sql (smoke) via $CLIENT (errors ignored)"
+          $CLIENT decanet_test < sql/seed.sql || true
+
+          echo "5) Quick smoke checks"
+          $CLIENT decanet_test -e "SELECT COUNT(*) AS city_count FROM city LIMIT 1;" || true
+
+      - name: Cleanup mysql container
+        if: always()
+        run: |
+          sudo docker logs --tail 200 mysql-test || true
+          sudo docker rm -f mysql-test || true

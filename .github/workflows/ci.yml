@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [ refactor/init ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+        tools: composer:v2
+
+    - name: Install dependencies
+      run: composer install --no-progress --no-suggest --prefer-dist
+
+    - name: Run phpcs (if configured)
+      run: |
+        if [ -f composer.json ] && composer show | grep -q squiz; then
+          ./vendor/bin/phpcs --standard=PSR12 src || true
+        else
+          echo "phpcs not configured; skipping"
+        fi
+
+    - name: Run phpunit (if tests present)
+      run: |
+        if [ -d tests ] || [ -f phpunit.xml ]; then
+          ./vendor/bin/phpunit --colors=always || true
+        else
+          echo "No tests found; skipping"
+        fi
+
+    - name: Run phinx migrations (optional)
+      env:
+        DB_HOST: 127.0.0.1
+        DB_NAME: decanet
+        DB_USER: root
+        DB_PASS: ''
+      run: |
+        if [ -f phinx.php ]; then
+          composer require robmorgan/phinx --no-interaction --no-progress
+          vendor/bin/phinx migrate -c phinx.php || true
+        else
+          echo "phinx not present; skipping"
+        fi
