@@ -124,7 +124,11 @@ jobs:
               sudo docker exec -i "$CID" mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS decanet_test CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
               echo "Importing schema.sql inside container..."
               sudo docker exec -i "$CID" sh -c 'exec mysql -uroot -proot decanet_test' < sql/schema.sql
-              echo "Importing seed.sql (smoke) inside container..."
+              echo "Update version of decanet schema inside container..."
+              sudo docker exec -i "$CID" sh -c 'exec mysql -uroot -proot decanet_test' < sql/dc_version.sql
+              echo "Createing businesslogic stored proc inside container..."
+              sudo docker exec -i "$CID" sh -c 'exec mysql -uroot -proot decanet_test' < sql/dc_procs_mardb_ux.sql 
+              echo "Inserting test data..."
               sudo docker exec -i "$CID" sh -c 'exec mysql -uroot -proot decanet_test' < sql/seed.sql || true
               echo "Completed import inside container."
               exit 0
