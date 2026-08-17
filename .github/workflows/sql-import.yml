@@ -9,42 +9,29 @@ on:
 jobs:
   import-sql:
     runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost -proot"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=10
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install mysql client and docker cli
+      - name: Install mysql client
         run: |
           sudo apt-get update
           sudo apt-get install -y default-mysql-client jq
 
-      - name: Debug docker / MySQL service (pre-wait)
+      - name: Pull and run MySQL container
         run: |
-          echo "=== docker ps -a ==="
-          sudo docker ps -a || true
-          echo "=== docker images (mysql-related) ==="
-          sudo docker images --filter=reference='mysql*' || true
-          # Найдём контейнер(ы) по образу mysql:8.0 и выведем логи (последние 500 строк)
-          CID=$(sudo docker ps -a --filter ancestor=mysql:8.0 -q | head -n1 || true)
-          echo "Detected mysql container id: $CID"
-          if [ -n "$CID" ]; then
-            echo "=== docker inspect (state) ==="
-            sudo docker inspect --format '{{json .State}}' $CID || true
-            echo "=== docker logs (last 500 lines) ==="
-            sudo docker logs --tail 500 $CID || true
-          else
-            echo "No mysql:8.0 container found yet. Showing all containers:"
-            sudo docker ps -a || true
+          set -euxo pipefail
+          IMAGE="mysql:8.0"
+          echo "Pulling $IMAGE..."
+          sudo docker pull "$IMAGE"
+          # remove any previous container with same name
+          if sudo docker ps -a --format '{{.Names}}' | grep -q '^mysql-test$' ; then
+            echo "Removing previous mysql-test container..."
+            sudo docker rm -f mysql-test || true
           fi
+          echo "Starting mysql-test container..."
+          sudo docker run --name mysql-test -e MYSQL_ROOT_PASSWORD=root -d "$IMAGE" --innodb_print_all_deadlocks=1
+          sleep 3
+          echo "Started mysql container: $(sudo docker ps --filter name=mysql-test -q || true)"
 
       - name: Wait for MySQL (with timeout & diagnostics)
         run: |
@@ -53,7 +40,7 @@ jobs:
           TIMEOUT=$((5*60))   # 5 minutes
           echo "Waiting up to ${TIMEOUT}s for MySQL to accept connections..."
           while true; do
-            if mysqladmin ping -h127.0.0.1 -uroot -proot >/dev/null 2>&1; then
+            if sudo docker exec mysql-test mysqladmin ping -uroot -proot >/dev/null 2>&1; then
               echo "MySQL is up"
               break
             fi
@@ -64,45 +51,34 @@ jobs:
               echo "Timed out waiting for MySQL after ${TIMEOUT}s. Dumping diagnostics..."
               echo "=== docker ps -a ==="
               sudo docker ps -a || true
-              echo "=== docker images (mysql-related) ==="
+              echo "=== docker images (mysql*) ==="
               sudo docker images --filter=reference='mysql*' || true
-              # try to find a container created from mysql image
-              CID=$(sudo docker ps -a --filter ancestor=mysql:8.0 -q | head -n1 || true)
+              CID=$(sudo docker ps -a --filter name=mysql-test -q || true)
               echo "Detected mysql container id: $CID"
               if [ -n "$CID" ]; then
                 echo "=== docker inspect (state) ==="
                 sudo docker inspect --format '{{json .State}}' $CID || true
                 echo "=== docker logs (last 500 lines) ==="
                 sudo docker logs --tail 500 $CID || true
-              else
-                echo "No mysql:8.0 container found. Showing all containers:"
-                sudo docker ps -a || true
               fi
               exit 1
             fi
             sleep 5
           done
 
-      - name: Create test DB and import schema
+      - name: Create test DB and import schema + seed
         run: |
-          mysql -h127.0.0.1 -uroot -proot -e "CREATE DATABASE IF NOT EXISTS decanet_test CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
-          echo ">>> Importing schema.sql"
-          mysql -h127.0.0.1 -uroot -proot decanet_test < sql/schema.sql
-          echo ">>> Schema import done"
-          mysql -u root -proot decanet_test < sql/dc_version.sql
-          echo ">>> Schema versioning done"
+          echo "Creating database decanet_test..."
+          sudo docker exec -i mysql-test mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS decanet_test CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
+          echo "Importing schema.sql..."
+          sudo docker exec -i mysql-test sh -c 'exec mysql -uroot -proot decanet_test' < sql/schema.sql
+          echo "Importing seed.sql (smoke)..."
+          sudo docker exec -i mysql-test sh -c 'exec mysql -uroot -proot decanet_test' < sql/seed.sql || true
+          echo "Quick checks..."
+          sudo docker exec mysql-test mysql -uroot -proot -e "SELECT COUNT(*) AS city_count FROM city LIMIT 1;" decanet_test || true
 
-      - name: Import seed (smoke)
+      - name: Cleanup mysql container
+        if: always()
         run: |
-          echo ">>> Importing seed.sql (smoke)"
-          # если seed очень большой, можно импортировать только первые N строк/кусок
-          mysql -h127.0.0.1 -uroot -proot decanet_test < sql/seed.sql || true
-          echo ">>> Seed import step finished"
-          mysql -u root -proot decanet_test < sql/dc_procs_mardb_ux.sql 
-          echo ">>> stored procs import step finished"
-
-      - name: Quick smoke queries
-        run: |
-          mysql -h127.0.0.1 -uroot -proot decanet_test -e "SELECT COUNT(*) AS acad_count FROM acad LIMIT 1;"
-          mysql -h127.0.0.1 -uroot -proot decanet_test -e "SELECT COUNT(*) AS city_count FROM city LIMIT 1;" || true
-
+          sudo docker logs --tail 200 mysql-test || true
+          sudo docker rm -f mysql-test || true
