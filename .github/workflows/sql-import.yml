@@ -144,11 +144,18 @@ jobs:
           echo "3) Importing schema.sql via $CLIENT"
           $CLIENT decanet_test < sql/schema.sql
 
-          echo "4) Importing seed.sql (smoke) via $CLIENT (errors ignored)"
+          echo "4) Update version of decanet schema via $CLIENT (errors ignored)"
+          $CLIENT decanet_test < sql/dc_version.sql
+
+          echo "5) Createing businesslogic stored proc via $CLIENT (errors ignored)"
+          $CLIENT decanet_test < sql/dc_procs_mardb_ux.sql.sql
+
+          echo "6) Importing seed.sql (smoke) via $CLIENT (errors ignored)"
           $CLIENT decanet_test < sql/seed.sql || true
 
-          echo "5) Quick smoke checks"
-          $CLIENT decanet_test -e "SELECT COUNT(*) AS city_count FROM city LIMIT 1;" || true
+          echo "7) Quick smoke checks"
+          $CLIENT decanet_test -e "SELECT COUNT(*) AS city_count FROM city LIMIT 1;" 
+          $CLIENT decanet_test -e "CALL EDUTYPE_LST();" || true
 
       - name: Cleanup mysql container
         if: always()

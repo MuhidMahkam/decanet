@@ -20,20 +20,16 @@ mysql -u root -p decanet_test < sql/seed.sql
 
 3.Update schema version and stored procs :
 
+```bash
 mysql -u root -p decanet_test < sql/dc_version.sql
 mysql -u root -p decanet_test < sql/dc_procs_mardb_ux.sql 
-
-
-```bash
-mysql -u root -p decanet_test < sql/schema.sql
-mysql -u root -p decanet_test < sql/seed.sql
-
 
 Quick checks:
 
 ```bash
-mysql -u root -p decanet_test -e "SELECT COUNT(*) FROM abit;"
+mysql -u root -p decanet_test -e "SELECT COUNT(*) FROM acad;"
 mysql -u root -p decanet_test -e "SELECT COUNT(*) FROM city;"
+mysql -u root -p decanet_test -e "CALL EDUTYPE_LST();"
 
 
 CI
