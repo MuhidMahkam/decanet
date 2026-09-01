@@ -13,9 +13,8 @@ final class LegacyPageControllerTest extends TestCase
     {
         $routes = LegacyPageController::routes();
 
-        self::assertContains('/login.sit', $routes);
         self::assertContains('/login.php', $routes);
-        self::assertContains('/student.sit', $routes);
         self::assertContains('/student.php', $routes);
+        self::assertContains('/login.sit', $routes);
     }
 }

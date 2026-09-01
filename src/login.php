@@ -131,7 +131,7 @@ if(isset($_POST['user']) && isset($_POST['password'])){
     
     if (isset($vrow['DU_2FA'])){  //если установлен ключ 2FA
       $options2fa = set2FAoptions();
-      if (verify2FAcode($options2fa, $vrow['DU_2FA'], $_POST['code2fa'])) {
+      if (verify2FAcode($options2fa, $vrow['DU_2FA'], (string) ($_POST['code2fa'] ?? ''))) {
 
         dc_restore_session($vrow);
 
@@ -165,4 +165,3 @@ $MAIN .= "</table></form>";
 
 mainpaint();
 ?>
-

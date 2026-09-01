@@ -17,7 +17,7 @@ $config = AppConfig::fromEnvironment(dirname(__DIR__));
 
 $router = new Router();
 $router->get('/', static function (): never {
-    header('Location: /login.sit', true, 302);
+    header('Location: /login.php', true, 302);
     exit;
 });
 
