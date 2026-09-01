@@ -4,28 +4,26 @@ declare(strict_types=1);
 
 namespace Decanet\Http;
 
-use Closure;
-
 final class Router
 {
-    /** @var array<string, array{methods: list<string>, handler: Closure(Request): void}> */
+    /** @var array<string, array{methods: list<string>, handler: callable(Request): void}> */
     private array $routes = [];
 
-    /** @param Closure(): never $handler */
-    public function get(string $path, Closure $handler): void
+    /** @param callable(Request): void $handler */
+    public function get(string $path, callable $handler): void
     {
         $this->add($path, ['GET'], $handler);
     }
 
-    /** @param Closure(Request): void $handler */
-    public function any(string $path, Closure $handler): void
+    /** @param callable(Request): void $handler */
+    public function any(string $path, callable $handler): void
     {
         $this->add($path, ['GET', 'POST'], $handler);
     }
 
     /** @param list<string> $methods */
-    /** @param Closure(Request): void $handler */
-    private function add(string $path, array $methods, Closure $handler): void
+    /** @param callable(Request): void $handler */
+    private function add(string $path, array $methods, callable $handler): void
     {
         $this->routes[$path] = ['methods' => $methods, 'handler' => $handler];
     }
