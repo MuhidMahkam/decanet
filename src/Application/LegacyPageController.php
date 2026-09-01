@@ -32,7 +32,7 @@ final class LegacyPageController
         return array_keys(self::PAGES);
     }
 
-    public function __invoke(Request $request): void
+    public function __invoke(Request $request): string
     {
         $page = self::PAGES[$request->path] ?? null;
         if ($page === null) {
@@ -44,10 +44,6 @@ final class LegacyPageController
             throw new RuntimeException('Legacy page is missing.');
         }
 
-        $GLOBALS['__routedurlpage__'] = $request->path;
-        $_SERVER['REQUEST_URI'] = $request->path . (isset($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '');
-
-        chdir($this->legacyDirectory);
-        require $file;
+        return $file;
     }
 }

@@ -26,4 +26,9 @@ foreach (LegacyPageController::routes() as $route) {
     $router->any($route, $legacyController);
 }
 
-$router->dispatch(Request::fromGlobals());
+$page = $router->dispatch(Request::fromGlobals());
+if (is_string($page)) {
+    $GLOBALS['__routedurlpage__'] = Request::fromGlobals()->path;
+    chdir(dirname($page));
+    require $page;
+}
