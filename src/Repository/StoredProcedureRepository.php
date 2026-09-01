@@ -39,6 +39,8 @@ final class StoredProcedureRepository
         $statement->execute();
         $result = $statement->get_result();
         $rows = $result instanceof mysqli_result ? $result->fetch_all(MYSQLI_ASSOC) : [];
+        while ($this->connection->more_results() && $this->connection->next_result()) {
+        }
         $statement->close();
 
         return $rows;
