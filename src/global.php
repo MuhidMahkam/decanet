@@ -32,7 +32,7 @@ $DBN  = 'decanet';
 $VERSION  = 'версия 1.5';
 if(isset($_SESSION['db_ver']))
   $VERSION .= $_SESSION['db_ver'];
-$LOGO = "<a href='http://softintech/decanet.htm'><img src=dnllogo.gif alt=Деканет></a>";
+$LOGO = "<a href='earth.php'><img src=/dnllogo.gif alt=Деканет></a>";
 //$COPYRIGHT = "<a href='http://softintech/index.htm'><img src=linelogo.gif alt=СофтИнТэк></a>";
 $COPYRIGHT = "<a href='http://saxoft/index.htm'>(c)Saxoft</a>";
 $OBJ = array('country','region','city','school','facultet','division','sgroup','student'); 

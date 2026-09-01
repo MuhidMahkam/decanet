@@ -30,6 +30,8 @@ function setdefsess($rrow) {
   $_SESSION = array();
 
   $_SESSION['du_id'] = $rrow['DUSER_ID'];
+  $_SESSION['du_name'] = dc_encrypt($rrow['BUNAME']);
+  $_SESSION['du_pass'] = dc_encrypt($rrow['BUPASS']);
 
 //  echo "SETDEFSESS du_id: " . $_SESSION['du_id'] . "<br>";
  
@@ -83,6 +85,8 @@ function dc_restore_session($rrow) {
   if (isset($_SESSION['expired_du_id']) && ($_SESSION['expired_du_id'] == $rrow['DUSER_ID'])) {
     
     $_SESSION['du_id'] = $rrow['DUSER_ID'];
+    $_SESSION['du_name'] = dc_encrypt($rrow['BUNAME']);
+    $_SESSION['du_pass'] = dc_encrypt($rrow['BUPASS']);
     $_SESSION['expire'] = time() + $__logintimeout__;
 
     //echo 'EXPIRE process done: ' . $_SESSION['du_id'] . ' ' .  $_SESSION['du_name'] . "<br>";

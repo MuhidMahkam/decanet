@@ -8,15 +8,14 @@ if(!isset($_SESSION['du_themes'])){
   $_SESSION['du_themes'] = "1";
 }
 
-#$themesdir =  __DIR__ . "/themes/{$_SESSION['du_themes']}/";
-$themesdir =  "themes/{$_SESSION['du_themes']}/";
+$themesdir =  "/themes/{$_SESSION['du_themes']}/";
 $srcthemes = "src=" . $themesdir;
 
 #echo __DIR__ . "     "  . $themesdir . "    " . $srcthemes;
 #exit;
 
 
-include $themesdir . "style.css";
+include __DIR__ . "/../public$themesdir" . "style.css";
 $PIC_UC = $themesdir . "uc.gif";
 
 $P_EXL =   $srcthemes . "excel.gif";
@@ -95,8 +94,8 @@ function opendb(){
   global $HOST, $DBN, $GDB, $GDBL;
   $HOST = getenv('DB_HOST') ?: $HOST;
   $port = (int) (getenv('DB_PORT') ?: 3306);
-  $user = getenv('DB_USER');
-  $pass = getenv('DB_PASSWORD');
+  $user = isset($_SESSION['du_name']) ? dc_decrypt($_SESSION['du_name']) : getenv('DB_USER');
+  $pass = isset($_SESSION['du_pass']) ? dc_decrypt($_SESSION['du_pass']) : getenv('DB_PASSWORD');
 
   $GDB = new mysqli($HOST, $user, $pass, null, $port);
   if(mysqli_connect_errno()){
