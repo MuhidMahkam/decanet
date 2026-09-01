@@ -1,6 +1,4 @@
 <?php
-  
-session_start();
 
 //echo "SESSID: " . session_id() . "<br>";
 
