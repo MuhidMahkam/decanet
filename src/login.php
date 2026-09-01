@@ -14,6 +14,7 @@ $body = '';
 /*
 if (!isset($_SESSION['expired_du_id'])) {
   $_SESSION = array();
+  session_regenerate_id(true);
   session_unset();
   session_destroy();
   echo "SESS DESTROY.";
@@ -33,11 +34,6 @@ function setdefsess($rrow) {
 //  echo "SETDEFSESS du_id: " . $_SESSION['du_id'] . "<br>";
  
   $_SESSION['expire'] = time() + $__logintimeout__;
-
-  //$_SESSION['du_name'] = @mcrypt_ecb(MCRYPT_3DES, 'key', $row['BUNAME'], MCRYPT_ENCRYPT);
-  //$_SESSION['du_pass'] = @mcrypt_ecb(MCRYPT_3DES, 'key', $row['BUPASS'], MCRYPT_ENCRYPT);
-  $_SESSION['du_name'] = dc_encrypt($rrow['BUNAME']);
-  $_SESSION['du_pass'] = dc_encrypt($rrow['BUPASS']);
 
   $_SESSION['du_login']  = $_POST['user'];
   $_SESSION['du_lname']  = $rrow['DUSER_LNAME'];
@@ -87,8 +83,6 @@ function dc_restore_session($rrow) {
   if (isset($_SESSION['expired_du_id']) && ($_SESSION['expired_du_id'] == $rrow['DUSER_ID'])) {
     
     $_SESSION['du_id'] = $rrow['DUSER_ID'];
-    $_SESSION['du_name'] = dc_encrypt($rrow['BUNAME']);
-    $_SESSION['du_pass'] = dc_encrypt($rrow['BUPASS']);
     $_SESSION['expire'] = time() + $__logintimeout__;
 
     //echo 'EXPIRE process done: ' . $_SESSION['du_id'] . ' ' .  $_SESSION['du_name'] . "<br>";
@@ -119,14 +113,12 @@ if($demouser)
 //если пользователь ввел имя и пароль
 if(isset($_POST['user']) && isset($_POST['password'])){
   $first = false;
-  //$_SESSION['du_name'] = @mcrypt_ecb(MCRYPT_3DES, 'key', 'guest', MCRYPT_ENCRYPT);
-  //$_SESSION['du_pass'] = @mcrypt_ecb(MCRYPT_3DES, 'key', 'guest', MCRYPT_ENCRYPT);
-  $_SESSION['du_name'] = dc_encrypt('guest');
-  $_SESSION['du_pass'] = dc_encrypt('guest');
-
-  unset($GDB);
-
-  getdbrow("GETRUINFO('{$_POST['user']}','{$_POST['password']}')", $row);
+  try {
+    csrf_validate(isset($_POST['_csrf']) ? $_POST['_csrf'] : null);
+    getdbrowproc('GETRUINFO', array((string) $_POST['user'], (string) $_POST['password']), $row);
+  } catch (\RuntimeException $exception) {
+    $row = array();
+  }
 
   $vrow = $row;
 
@@ -159,6 +151,7 @@ else
   head('Неверное имя, пароль или разовый код! Попытайтесь снова:');
 
 $MAIN .= "<form name=vvod method=post>";
+$MAIN .= "<input type=hidden name=_csrf value='".htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8')."'>";
 $MAIN .= "<table>";
 $MAIN .= "<tr><td>Имя:</td>";
 $MAIN .= "<td><input type=text size=21 name=user></td></tr>";
@@ -172,5 +165,4 @@ $MAIN .= "</table></form>";
 
 mainpaint();
 ?>
-
 

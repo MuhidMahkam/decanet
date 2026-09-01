@@ -30,8 +30,8 @@ final class AppConfig
             self::value('DB_HOST', 'localhost'),
             (int) self::value('DB_PORT', '3306'),
             self::value('DB_NAME', 'decanet'),
-            self::value('DB_USER'),
-            self::value('DB_PASSWORD'),
+            self::value('DB_USER', ''),
+            self::value('DB_PASSWORD', ''),
             (int) self::value('SESSION_LIFETIME', '120'),
         );
     }

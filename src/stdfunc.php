@@ -93,15 +93,12 @@ function dcgoto($name){
 
 function opendb(){
   global $HOST, $DBN, $GDB, $GDBL;
-//  $user = @mcrypt_ecb(MCRYPT_3DES, 'key', $_SESSION['du_name'], MCRYPT_DECRYPT);
-//  $pass = @mcrypt_ecb(MCRYPT_3DES, 'key', $_SESSION['du_pass'], MCRYPT_DECRYPT);
+  $HOST = getenv('DB_HOST') ?: $HOST;
+  $port = (int) (getenv('DB_PORT') ?: 3306);
+  $user = getenv('DB_USER');
+  $pass = getenv('DB_PASSWORD');
 
-  $user = dc_decrypt($_SESSION['du_name']);
-  $pass = dc_decrypt($_SESSION['du_pass']);
-
-  //echo "OPENDB: " . $HOST . " " . $user . " " . $pass . " " . $_SESSION['du_name'] . " " . $_SESSION['du_pass'] . "<br>";
-
-  $GDB = new mysqli($HOST, $user, $pass);
+  $GDB = new mysqli($HOST, $user, $pass, null, $port);
   if(mysqli_connect_errno()){
     printf("Connect failed: %s\n", mysqli_connect_error());
     exit;
@@ -110,10 +107,60 @@ function opendb(){
     printf("Error loading character set utf8: %s\n", $GDB->error);
     exit;
   }
-  $GDBL = new mysqli($HOST, $user, $pass);
+  $GDBL = new mysqli($HOST, $user, $pass, null, $port);
   if(mysqli_connect_errno()){
     printf("Connect failed: %s\n", mysqli_connect_error());
     exit;
+  }
+
+  function getdbrowproc($procedure, $parameters, &$row)
+  {
+    global $DBN, $GDB, $ERMESS;
+
+    if(!$GDB)
+      opendb();
+    if(!preg_match('/^[A-Z][A-Z0-9_]*$/', $procedure)){
+      $ERMESS = 'Ошибка выполнения операции.';
+      return false;
+    }
+
+    $placeholders = implode(',', array_fill(0, count($parameters), '?'));
+    $statement = $GDB->prepare("CALL `$DBN`.`$procedure`($placeholders)");
+    if(!$statement){
+      $ERMESS = 'Ошибка выполнения операции.';
+      return false;
+    }
+    if($parameters){
+      $types = '';
+      $values = array();
+      foreach($parameters as $value){
+        $types .= is_int($value) ? 'i' : 's';
+        $values[] = $value;
+      }
+      $statement->bind_param($types, ...$values);
+    }
+    if(!$statement->execute()){
+      $ERMESS = 'Ошибка выполнения операции.';
+      $statement->close();
+      return false;
+    }
+    $result = $statement->get_result();
+    $row = $result ? $result->fetch_array(MYSQLI_ASSOC) : null;
+    while($GDB->more_results() && $GDB->next_result());
+    $statement->close();
+    return is_array($row);
+  }
+
+  function csrf_token()
+  {
+    $manager = new \Decanet\Security\CsrfTokenManager();
+    return $manager->token();
+  }
+
+  function csrf_validate($token)
+  {
+    $manager = new \Decanet\Security\CsrfTokenManager();
+    $manager->validate($token);
   }
   if(!$GDBL->set_charset("utf8")){
     printf("Error loading character set utf8: %s\n", $GDBL->error);
