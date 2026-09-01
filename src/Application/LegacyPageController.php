@@ -29,31 +29,12 @@ final class LegacyPageController
     /** @return list<string> */
     public static function routes(): array
     {
-        return array_merge(
-            array_keys(self::PAGES),
-            array_map(
-                static fn (string $route): string => str_ends_with($route, '.php')
-                    ? substr($route, 0, -4) . '.sit'
-                    : $route,
-                array_keys(self::PAGES),
-            ),
-        );
+        return array_keys(self::PAGES);
     }
 
     public function __invoke(Request $request): void
     {
-        if (str_ends_with($request->path, '.sit')) {
-            $canonicalPath = substr($request->path, 0, -4) . '.php';
-            $query = (string) ($_SERVER['QUERY_STRING'] ?? '');
-            header('Location: ' . $canonicalPath . ($query === '' ? '' : '?' . $query), true, 308);
-
-            return;
-        }
-
-        $route = str_ends_with($request->path, '.sit')
-            ? substr($request->path, 0, -4) . '.php'
-            : $request->path;
-        $page = self::PAGES[$route] ?? null;
+        $page = self::PAGES[$request->path] ?? null;
         if ($page === null) {
             throw new RuntimeException('Unknown legacy route.');
         }

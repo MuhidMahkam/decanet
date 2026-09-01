@@ -9,12 +9,12 @@ use PHPUnit\Framework\TestCase;
 
 final class LegacyPageControllerTest extends TestCase
 {
-    public function testItSupportsLegacySitAndPhpUrls(): void
+    public function testItSupportsOnlyPhpUrls(): void
     {
         $routes = LegacyPageController::routes();
 
         self::assertContains('/login.php', $routes);
         self::assertContains('/student.php', $routes);
-        self::assertContains('/login.sit', $routes);
+        self::assertNotContains('/login.sit', $routes);
     }
 }

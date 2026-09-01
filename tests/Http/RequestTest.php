@@ -19,14 +19,14 @@ final class RequestTest extends TestCase
     public function testItBuildsRequestFromGlobalsWithoutQueryInPath(): void
     {
         $_SERVER['REQUEST_METHOD'] = 'post';
-        $_SERVER['REQUEST_URI'] = '/student.sit?page=2';
+        $_SERVER['REQUEST_URI'] = '/student.php?page=2';
         $_GET = ['page' => '2'];
         $_POST = ['name' => 'Ada'];
 
         $request = Request::fromGlobals();
 
         self::assertSame('POST', $request->method);
-        self::assertSame('/student.sit', $request->path);
+        self::assertSame('/student.php', $request->path);
         self::assertSame(['page' => '2'], $request->query);
         self::assertSame(['name' => 'Ada'], $request->post);
     }
