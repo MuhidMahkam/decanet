@@ -44,7 +44,7 @@ final class LegacyPageController
             throw new RuntimeException('Legacy page is missing.');
         }
 
-        $__routedurlpage__ = $request->path;
+        $GLOBALS['__routedurlpage__'] = $request->path;
         $_SERVER['REQUEST_URI'] = $request->path . (isset($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '');
 
         chdir($this->legacyDirectory);
