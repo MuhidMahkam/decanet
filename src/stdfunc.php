@@ -94,8 +94,12 @@ function opendb(){
   global $HOST, $DBN, $GDB, $GDBL;
   $HOST = getenv('DB_HOST') ?: $HOST;
   $port = (int) (getenv('DB_PORT') ?: 3306);
-  $user = isset($_SESSION['du_name']) ? dc_decrypt($_SESSION['du_name']) : getenv('DB_USER');
-  $pass = isset($_SESSION['du_pass']) ? dc_decrypt($_SESSION['du_pass']) : getenv('DB_PASSWORD');
+  $user = isset($_SESSION['du_name'])
+    ? dc_decrypt($_SESSION['du_name'])
+    : (getenv('DB_LOGIN_USER') ?: 'guest');
+  $pass = isset($_SESSION['du_pass'])
+    ? dc_decrypt($_SESSION['du_pass'])
+    : (getenv('DB_LOGIN_PASSWORD') ?: 'guest');
 
   $GDB = new mysqli($HOST, $user, $pass, null, $port);
   if(mysqli_connect_errno()){
