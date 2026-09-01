@@ -20,7 +20,7 @@ include('config.php');
 include('stdfunc.php');
 
 //vendor
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 
 //запуск проверки регистрации
 nsd();
@@ -389,10 +389,10 @@ if(isset($_GET['glm']))
 
 function gtempl($fname){
   //$fn = "files/templ/{$_SESSION['co_facultet']}/$fname";
-  $fn = __DIR__ . "/../deca/files/templ/{$_SESSION['co_facultet']}/$fname";
+  $fn = __DIR__ . "/../templates/{$_SESSION['co_facultet']}/$fname";
   if(!file_exists($fn)){
     //$fn = "files/templ/0/$fname";
-    $fn = __DIR__ . "/../deca/files/templ/0/$fname";
+    $fn = __DIR__ . "/../templates/0/$fname";
       if(!file_exists($fn)){
         echo "Шаблон $fn не найден.";
         return false;

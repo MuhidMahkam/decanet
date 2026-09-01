@@ -8,7 +8,7 @@ Decanet — это веб-приложение для автоматизации
 
 ## Требования
 
-- PHP 7.4 или выше
+- PHP 8.2 или выше
 - MariaDB 10.3 или выше (или MySQL 5.7+)
 - Composer
 - Git
@@ -38,9 +38,7 @@ cp .env.example .env
 
 ### 4. Создайте базу данных
 
-```bash
-mysql -u root -p < database.sql
-```
+Импортируйте SQL-файлы из каталога `sql/` в порядке, соответствующем вашей версии базы.
 
 ### 5. Запустите приложение
 
@@ -55,7 +53,7 @@ php -S localhost:8000 -t public/
 ```
 decanet/
 ├── public/          # Публичные файлы (index.php, CSS, JS, изображения)
-├── src/             # Исходный код приложения (PHP классы, логика)
+├── src/             # Исходный код: Application, Http, Infrastructure, Repository, Security и legacy-страницы
 ├── templates/       # HTML шаблоны (представления)
 ├── vendor/          # Зависимости Composer (не коммитится)
 ├── .env             # Переменные окружения (не коммитится)
@@ -89,6 +87,12 @@ composer test
 
 ```bash
 composer lint
+```
+
+### Статический анализ
+
+```bash
+composer analyse
 ```
 
 ## Лицензия
