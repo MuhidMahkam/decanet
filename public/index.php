@@ -13,6 +13,7 @@ use Decanet\Repository\LocationRepository;
 use Decanet\Repository\StoredProcedureLocationRepository;
 use Decanet\Repository\StoredProcedureRepository;
 use Decanet\Security\SessionManager;
+use Decanet\Security\LegacySessionDatabaseCredentials;
 use Decanet\View\TemplateRenderer;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
@@ -29,11 +30,12 @@ $router->get('/', static function (): never {
 
 $session =& $_SESSION;
 $catalogController = new CatalogController(
-    static function () use ($config): LocationRepository {
+    static function () use ($config, &$session): LocationRepository {
+        $credentials = LegacySessionDatabaseCredentials::fromSession($session);
         $connection = new \mysqli(
             $config->databaseHost,
-            $config->databaseUser,
-            $config->databasePassword,
+            $credentials->user,
+            $credentials->password,
             null,
             $config->databasePort,
         );
