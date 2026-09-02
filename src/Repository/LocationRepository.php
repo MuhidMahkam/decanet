@@ -16,4 +16,7 @@ interface LocationRepository
 
     /** @return list<Location> */
     public function cities(int $regionId): array;
+
+    /** @return list<Location> */
+    public function schools(int $cityId): array;
 }

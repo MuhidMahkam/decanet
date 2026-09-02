@@ -27,6 +27,11 @@ final class StoredProcedureLocationRepository implements LocationRepository
         return $this->map($this->procedures->call('CITY_LST', [$regionId]), 'CITY');
     }
 
+    public function schools(int $cityId): array
+    {
+        return $this->map($this->procedures->call('SCHOOL_LST', [$cityId]), 'SCHOOL');
+    }
+
     /** @param list<array<string, mixed>> $rows */
     /** @return list<Location> */
     private function map(array $rows, string $prefix, string $nameField = 'NAME'): array

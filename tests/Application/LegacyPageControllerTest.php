@@ -16,6 +16,7 @@ final class LegacyPageControllerTest extends TestCase
 
         self::assertContains('/login.php', $routes);
         self::assertContains('/student.php', $routes);
+        self::assertNotContains('/earth.php', $routes);
         self::assertNotContains('/login.sit', $routes);
     }
 
