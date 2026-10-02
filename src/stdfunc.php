@@ -185,7 +185,18 @@ function getdbmass($query, &$mass)
     $DEBUG .= "CALL $DBN.$query; ";
     $tb = microtime(1);
   }
-  $GDB->multi_query("CALL $DBN.$query;");
+  try {
+    $GDB->multi_query("CALL $DBN.$query;");
+  } catch (\mysqli_sql_exception $exception) {
+    $mass = null;
+    $errno = $exception->getCode();
+    $error = $exception->getMessage();
+    $ERMESS = \Decanet\Infrastructure\DatabaseErrorMessage::forCode($errno);
+    if($errno != 1370)
+      $_SESSION['error'] = "CALL $DBN.$query;<br>$error";
+    error_log("Database procedure failure ($errno): $error");
+    return;
+  }
   $mass = $GDB->store_result();
   $ret = 'NULL';
   if($mass){
@@ -202,10 +213,8 @@ function getdbmass($query, &$mass)
     $errno = $GDB->errno;
     $error = $GDB->error;
 //    $nogoto = true;
-    if($GDB->errno == 1370)
-      $ERMESS ="Доступ к операции запрещен.";
-    else{
-      $ERMESS ="Ошибка выполнения операции. Проверьте поля, обязательные для заполнения. <a href='error.php'>Подробно.</a>";
+    $ERMESS = \Decanet\Infrastructure\DatabaseErrorMessage::forCode($GDB->errno);
+    if($GDB->errno != 1370){
       $_SESSION['error'] = "CALL $DBN.$query;<br>{$GDB->error}";
     }
   }
@@ -236,19 +245,24 @@ function getdbm($query, &$mass)
     opendb();
   if($debug)
     $DEBUG .= "CALL $DBN.$query;";
-  if($GDB->more_results())
-    $GDB->next_result();
-  else
-    $GDB->multi_query("CALL $DBN.$query;");
+  try {
+    if($GDB->more_results())
+      $GDB->next_result();
+    else
+      $GDB->multi_query("CALL $DBN.$query;");
+  } catch (\mysqli_sql_exception $exception) {
+    $mass = null;
+    $ERMESS = \Decanet\Infrastructure\DatabaseErrorMessage::forCode($exception->getCode());
+    if($exception->getCode() != 1370)
+      $_SESSION['error'] = "CALL $DBN.$query;<br>{$exception->getMessage()}";
+    error_log("Database procedure failure ({$exception->getCode()}): {$exception->getMessage()}");
+    return false;
+  }
   $mass = $GDB->store_result();
 
   if($GDB->errno){
-    if($GDB->errno == 1370){
-      $ERMESS ="Доступ к операции запрещен.";
-      $_SESSION['error'] = "CALL $DBN.$query;<br>{$GDB->error}"; 
-    }
-    else{
-      $ERMESS ="Ошибка выполнения операции №{$GDB->errno} <a href='error.php'>Подробно.</a>";
+    $ERMESS = \Decanet\Infrastructure\DatabaseErrorMessage::forCode($GDB->errno);
+    if($GDB->errno != 1370){
       $_SESSION['error'] = "CALL $DBN.$query;<br>{$GDB->error}";
     }
   }
