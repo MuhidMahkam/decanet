@@ -25,8 +25,10 @@ final class ErrorHandler
 
         set_exception_handler(function (Throwable $exception): void {
             error_log((string) $exception);
-            http_response_code(500);
-            header('Content-Type: text/plain; charset=UTF-8');
+            if (!headers_sent()) {
+                http_response_code(500);
+                header('Content-Type: text/plain; charset=UTF-8');
+            }
             echo $this->debug ? $exception->getMessage() : 'Internal server error';
         });
     }

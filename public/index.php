@@ -21,6 +21,7 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 $config = AppConfig::fromEnvironment(dirname(__DIR__));
 (new ErrorHandler($config->isDebug()))->register();
 (new SessionManager($config))->start();
+ob_start();
 
 $router = new Router();
 $router->get('/', static function (): never {
