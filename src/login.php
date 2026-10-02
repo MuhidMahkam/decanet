@@ -111,6 +111,7 @@ function dc_restore_session($rrow) {
 
 //первый вход
 $first = true;
+$csrfFailure = false;
 if($demouser)
   $_POST['user'] = $_POST['password'] = 'demo';
 
@@ -122,6 +123,7 @@ if(isset($_POST['user']) && isset($_POST['password'])){
     getdbrowproc('GETRUINFO', array((string) $_POST['user'], (string) $_POST['password']), $row);
   } catch (\RuntimeException $exception) {
     $row = array();
+    $csrfFailure = $exception->getMessage() === 'Invalid CSRF token.';
   }
 
   $vrow = $row;
@@ -151,6 +153,8 @@ if(isset($_POST['user']) && isset($_POST['password'])){
 //если пользователь незарегистрирован
 if($first)
   head('Вход в систему:');
+else if($csrfFailure)
+  head('Форма устарела. Обновите страницу и повторите вход.');
 else
   head('Неверное имя, пароль или разовый код! Попытайтесь снова:');
 
