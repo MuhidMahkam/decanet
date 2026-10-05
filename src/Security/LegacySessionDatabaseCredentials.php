@@ -17,18 +17,9 @@ final class LegacySessionDatabaseCredentials
             throw new RuntimeException('Authenticated database credentials are missing.');
         }
 
-        return new DatabaseCredentials(self::decrypt($user), self::decrypt($password));
-    }
-
-    private static function decrypt(string $value): string
-    {
-        $key = hash('sha256', 'secret_key');
-        $iv = mb_substr(hash('sha256', 'secret_iv'), 0, 16);
-        $decrypted = openssl_decrypt(base64_decode($value, true) ?: '', 'AES-256-CBC', $key, 0, $iv);
-        if (!is_string($decrypted) || $decrypted === '') {
-            throw new RuntimeException('Unable to decrypt authenticated database credentials.');
-        }
-
-        return $decrypted;
+        return new DatabaseCredentials(
+            SessionCredentialCipher::decrypt($user),
+            SessionCredentialCipher::decrypt($password),
+        );
     }
 }

@@ -92,12 +92,16 @@ function opendb(){
   global $HOST, $DBN, $GDB, $GDBL;
   $HOST = getenv('DB_HOST') ?: $HOST;
   $port = (int) (getenv('DB_PORT') ?: 3306);
+  $loginUser = getenv('DB_LOGIN_USER');
+  $loginPassword = getenv('DB_LOGIN_PASSWORD');
+  if(!isset($_SESSION['du_name']) && (!is_string($loginUser) || $loginUser === '' || !is_string($loginPassword) || $loginPassword === ''))
+    throw new \RuntimeException('Database login credentials are not configured.');
   $user = isset($_SESSION['du_name'])
     ? dc_decrypt($_SESSION['du_name'])
-    : (getenv('DB_LOGIN_USER') ?: 'guest');
+    : $loginUser;
   $pass = isset($_SESSION['du_pass'])
     ? dc_decrypt($_SESSION['du_pass'])
-    : (getenv('DB_LOGIN_PASSWORD') ?: 'guest');
+    : $loginPassword;
 
   $GDB = new mysqli($HOST, $user, $pass, null, $port);
   if(mysqli_connect_errno()){
@@ -137,7 +141,7 @@ function getdbrowproc($procedure, $parameters, &$row)
   if(!$statement){
     error_log("Stored procedure $procedure preparation failed: " . $GDB->error);
     $ERMESS = 'Ошибка выполнения операции.';
-    return false;
+    return null;
   }
   if($parameters){
     $types = '';
@@ -152,7 +156,7 @@ function getdbrowproc($procedure, $parameters, &$row)
     error_log("Stored procedure $procedure execution failed: " . $statement->error);
     $ERMESS = 'Ошибка выполнения операции.';
     $statement->close();
-    return false;
+    return null;
   }
   $result = $statement->get_result();
   $row = $result ? $result->fetch_array(MYSQLI_ASSOC) : null;
@@ -191,11 +195,11 @@ function getdbmass($query, &$mass)
     $GDB->multi_query("CALL $DBN.$query;");
   } catch (\mysqli_sql_exception $exception) {
     $mass = null;
-    $errno = $exception->getCode();
+    $errno = (int) $exception->getCode();
     $error = $exception->getMessage();
     $ERMESS = \Decanet\Infrastructure\DatabaseErrorMessage::forCode($errno);
     if($errno != 1370)
-      $_SESSION['error'] = "CALL $DBN.$query;<br>$error";
+      $_SESSION['error'] = 'Техническая информация записана в журнал сервера.';
     error_log("Database procedure failure ($errno): $error");
     return;
   }
@@ -217,7 +221,7 @@ function getdbmass($query, &$mass)
 //    $nogoto = true;
     $ERMESS = \Decanet\Infrastructure\DatabaseErrorMessage::forCode($GDB->errno);
     if($GDB->errno != 1370){
-      $_SESSION['error'] = "CALL $DBN.$query;<br>{$GDB->error}";
+      $_SESSION['error'] = 'Техническая информация записана в журнал сервера.';
     }
   }
   while($GDB->next_result());
@@ -254,10 +258,11 @@ function getdbm($query, &$mass)
       $GDB->multi_query("CALL $DBN.$query;");
   } catch (\mysqli_sql_exception $exception) {
     $mass = null;
-    $ERMESS = \Decanet\Infrastructure\DatabaseErrorMessage::forCode($exception->getCode());
-    if($exception->getCode() != 1370)
-      $_SESSION['error'] = "CALL $DBN.$query;<br>{$exception->getMessage()}";
-    error_log("Database procedure failure ({$exception->getCode()}): {$exception->getMessage()}");
+    $errno = (int) $exception->getCode();
+    $ERMESS = \Decanet\Infrastructure\DatabaseErrorMessage::forCode($errno);
+    if($errno != 1370)
+      $_SESSION['error'] = 'Техническая информация записана в журнал сервера.';
+    error_log("Database procedure failure ($errno): {$exception->getMessage()}");
     return false;
   }
   $mass = $GDB->store_result();
@@ -265,7 +270,7 @@ function getdbm($query, &$mass)
   if($GDB->errno){
     $ERMESS = \Decanet\Infrastructure\DatabaseErrorMessage::forCode($GDB->errno);
     if($GDB->errno != 1370){
-      $_SESSION['error'] = "CALL $DBN.$query;<br>{$GDB->error}";
+      $_SESSION['error'] = 'Техническая информация записана в журнал сервера.';
     }
   }
 
@@ -998,40 +1003,11 @@ function passgen($len){
 }
 
 function dc_encrypt($string) {
-    $output = false;
-
-    $encrypt_method = "AES-256-CBC";
-    $secret_key = 'secret_key';
-    $secret_iv = 'secret_iv';
-
-    // hash
-    $key = hash('sha256', $secret_key);
-    
-    // iv - encrypt method AES-256-CBC expects 16 bytes - else you will get a warning
-    $iv = mb_substr(hash('sha256', $secret_iv), 0, 16);
-
-    $output = openssl_encrypt($string, $encrypt_method, $key, 0, $iv);
-    $output = base64_encode($output);
-
-    return $output;
+    return \Decanet\Security\SessionCredentialCipher::encrypt($string);
 }
 
 function dc_decrypt($string) {
-    $output = false;
-
-    $encrypt_method = "AES-256-CBC";
-    $secret_key = 'secret_key';
-    $secret_iv = 'secret_iv';
-
-    // hash
-    $key = hash('sha256', $secret_key);
-    
-    // iv - encrypt method AES-256-CBC expects 16 bytes - else you will get a warning
-    $iv = mb_substr(hash('sha256', $secret_iv), 0, 16);
-
-    $output = openssl_decrypt(base64_decode($string), $encrypt_method, $key, 0, $iv);
-
-    return $output;
+    return \Decanet\Security\SessionCredentialCipher::decrypt($string);
 }
 
 ?>

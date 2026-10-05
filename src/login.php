@@ -122,7 +122,9 @@ if(isset($_POST['user']) && isset($_POST['password'])){
   $first = false;
   try {
     csrf_validate($_POST['_csrf'] ?? null);
-    $credentialsVerified = getdbrowproc('GETRUINFO', array((string) $_POST['user'], (string) $_POST['password']), $row);
+    $lookupResult = getdbrowproc('GETRUINFO', array((string) $_POST['user'], (string) $_POST['password']), $row);
+    $credentialsVerified = $lookupResult === true;
+    $authenticationUnavailable = $lookupResult === null;
   } catch (\Decanet\Security\InvalidCsrfToken $exception) {
     $row = array();
     $credentialsVerified = false;
@@ -165,20 +167,10 @@ if(isset($_POST['user']) && isset($_POST['password'])){
 //если пользователь незарегистрирован
 if($first)
   head('Вход в систему:');
-else if($csrfFailure)
+else if($failure = \Decanet\Security\LoginFailureMessage::for($csrfFailure, $authenticationUnavailable, $twoFactorFailure))
 {
-  $ERMESS = 'Проверка защищённой формы не пройдена. Обновите страницу и повторите вход.';
-  head('Форма устарела. Обновите страницу и повторите вход.');
-}
-else if($authenticationUnavailable)
-{
-  $ERMESS = 'Не удалось проверить учётные данные. Проверьте подключение к базе данных и журнал ошибок сервера.';
-  head('Авторизация временно недоступна.');
-}
-else if($twoFactorFailure)
-{
-  $ERMESS = 'Разовый код не прошёл проверку.';
-  head('Введите новый разовый код и повторите вход.');
+  $ERMESS = $failure['error'];
+  head($failure['heading']);
 }
 else
   head('Неверное имя, пароль или разовый код! Попытайтесь снова:');
