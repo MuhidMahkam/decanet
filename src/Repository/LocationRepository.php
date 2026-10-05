@@ -19,4 +19,13 @@ interface LocationRepository
 
     /** @return list<Location> */
     public function schools(int $cityId): array;
+
+    /** @return list<Location> */
+    public function facultets(int $schoolId): array;
+
+    /** @return list<Location> */
+    public function divisions(int $facultetId, ?bool $active = null): array;
+
+    /** @return list<Location> */
+    public function groups(int $divisionId, ?bool $active = null): array;
 }

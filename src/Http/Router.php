@@ -6,7 +6,7 @@ namespace Decanet\Http;
 
 final class Router
 {
-    /** @var array<string, array{methods: list<string>, handler: callable(Request): mixed}> */
+    /** @var array<string, array<string, callable(Request): mixed>> */
     private array $routes = [];
 
     /** @param callable(Request): mixed $handler */
@@ -25,19 +25,21 @@ final class Router
     /** @param callable(Request): mixed $handler */
     private function add(string $path, array $methods, callable $handler): void
     {
-        $this->routes[$path] = ['methods' => $methods, 'handler' => $handler];
+        foreach ($methods as $method) {
+            $this->routes[$path][$method] = $handler;
+        }
     }
 
     public function dispatch(Request $request): mixed
     {
-        $route = $this->routes[$request->path] ?? null;
-        if ($route === null || !in_array($request->method, $route['methods'], true)) {
+        $handler = $this->routes[$request->path][$request->method] ?? null;
+        if ($handler === null) {
             http_response_code(404);
             echo 'Not found';
 
             return null;
         }
 
-        return ($route['handler'])($request);
+        return $handler($request);
     }
 }

@@ -17,7 +17,11 @@ final class LegacyPageControllerTest extends TestCase
         self::assertContains('/login.php', $routes);
         self::assertContains('/student.php', $routes);
         self::assertNotContains('/earth.php', $routes);
+        self::assertNotContains('/school.php', $routes);
+        self::assertNotContains('/facultet.php', $routes);
+        self::assertNotContains('/division.php', $routes);
         self::assertNotContains('/login.sit', $routes);
+        self::assertSame(['/facultet.php', '/division.php'], LegacyPageController::formRoutes());
     }
 
     public function testItReturnsTheLegacyPageForGlobalScopeRendering(): void
@@ -32,5 +36,17 @@ final class LegacyPageControllerTest extends TestCase
         self::assertSame($directory . '/login.php', (new LegacyPageController($directory))(Request::fromGlobals()));
         unlink($directory . '/login.php');
         rmdir($directory);
+    }
+
+    public function testItRetainsMigratedRouteFormsAsLegacyFallbacks(): void
+    {
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_SERVER['REQUEST_URI'] = '/division.php';
+        $_SERVER['QUERY_STRING'] = '';
+
+        self::assertSame(
+            dirname(__DIR__, 2) . '/src/division.php',
+            (new LegacyPageController(dirname(__DIR__, 2) . '/src'))->formFallback(Request::fromGlobals()),
+        );
     }
 }

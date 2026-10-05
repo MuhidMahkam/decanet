@@ -66,6 +66,48 @@ final class CatalogControllerTest extends TestCase
         self::assertStringContainsString('<a href="school.php?school_id=501">МГУ</a>', $response->body);
     }
 
+    public function testItMigratesSchoolFacultetAndDivisionReadOnlyCatalogs(): void
+    {
+        $session = [
+            'du_id' => 7,
+            'expire' => 101,
+            'co_country' => 1,
+            'co_region' => 10,
+            'co_city' => 100,
+            'co_school' => 501,
+            'co_facultet' => 601,
+            'co_division' => 701,
+        ];
+        $controller = $this->controller($session);
+
+        $school = $controller($this->request('/school.php'));
+        $facultet = $controller($this->request('/facultet.php', ['fac1m' => '2']));
+        $division = $controller($this->request('/division.php', ['div1m' => '1']));
+
+        self::assertStringContainsString('<a href="facultet.php?facultet_id=601">Физический факультет</a>', $school->body);
+        self::assertStringContainsString('<a href="division.php?division_id=701">Кафедра физики</a>', $facultet->body);
+        self::assertStringContainsString('Отделения:', $facultet->body);
+        self::assertStringContainsString('<a href="sgroup.php?sgroup_id=801">Ф-101 (2024/2028)</a>', $division->body);
+        self::assertStringContainsString('Отделение:', $division->body);
+        self::assertStringContainsString('Добавить группу', $division->body);
+        self::assertStringContainsString(
+            '<a href="school.php">МГУ</a>.<a href="facultet.php">Физ</a>.<a href="division.php">Кафедра физики</a>.',
+            $division->body,
+        );
+    }
+
+    public function testItOnlyHandlesReadOnlyMigratedRequests(): void
+    {
+        $session = ['du_id' => 7, 'expire' => 101];
+        $controller = $this->controller($session);
+
+        self::assertTrue($controller->handles($this->request('/school.php', ['unexpected' => '1'])));
+        self::assertTrue($controller->handles($this->request('/facultet.php', ['fac1m' => '1'])));
+        self::assertTrue($controller->handles($this->request('/division.php', ['divm' => '0', 'div1m' => '2'])));
+        self::assertFalse($controller->handles($this->request('/facultet.php', ['cont' => '1'])));
+        self::assertFalse($controller->handles($this->request('/division.php', ['divm' => '1'])));
+    }
+
     public function testItEscapesCatalogNames(): void
     {
         $session = ['du_id' => 7, 'expire' => 101];
@@ -86,6 +128,21 @@ final class CatalogControllerTest extends TestCase
             }
 
             public function schools(int $cityId): array
+            {
+                return [];
+            }
+
+            public function facultets(int $schoolId): array
+            {
+                return [];
+            }
+
+            public function divisions(int $facultetId, ?bool $active = null): array
+            {
+                return [];
+            }
+
+            public function groups(int $divisionId, ?bool $active = null): array
             {
                 return [];
             }
@@ -193,6 +250,23 @@ final class CatalogControllerTest extends TestCase
             public function schools(int $cityId): array
             {
                 return $cityId === 100 ? [new Location(501, 'МГУ')] : [];
+            }
+
+            public function facultets(int $schoolId): array
+            {
+                return $schoolId === 501 ? [new Location(601, 'Физический факультет', 'Физ')] : [];
+            }
+
+            public function divisions(int $facultetId, ?bool $active = null): array
+            {
+                return $facultetId === 601
+                    ? [new Location(701, 'Кафедра физики', null, $active ?? true)]
+                    : [];
+            }
+
+            public function groups(int $divisionId, ?bool $active = null): array
+            {
+                return $divisionId === 701 ? [new Location(801, 'Ф-101 (2024/2028)', null, $active ?? true)] : [];
             }
         };
     }

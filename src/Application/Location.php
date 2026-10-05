@@ -10,6 +10,7 @@ final readonly class Location
         public int $id,
         public string $name,
         public ?string $shortName = null,
+        public ?bool $active = null,
     ) {
     }
 }

@@ -29,6 +29,14 @@ $router->get('/', static function (): never {
     exit;
 });
 
+$legacyController = new LegacyPageController(dirname(__DIR__) . '/src');
+foreach (LegacyPageController::routes() as $route) {
+    $router->any($route, $legacyController);
+}
+foreach (LegacyPageController::formRoutes() as $route) {
+    $router->any($route, static fn (Request $request): string => $legacyController->formFallback($request));
+}
+
 $session =& $_SESSION;
 $catalogController = new CatalogController(
     static function () use ($config, &$session): LocationRepository {
@@ -57,12 +65,13 @@ $catalogController = new CatalogController(
     $session,
 );
 foreach (CatalogController::routes() as $route) {
-    $router->get($route, $catalogController);
-}
+    $router->get($route, static function (Request $request) use ($catalogController, $legacyController): Response|string {
+        if ($catalogController->handles($request)) {
+            return $catalogController($request);
+        }
 
-$legacyController = new LegacyPageController(dirname(__DIR__) . '/src');
-foreach (LegacyPageController::routes() as $route) {
-    $router->any($route, $legacyController);
+        return $legacyController->formFallback($request);
+    });
 }
 
 $result = $router->dispatch(Request::fromGlobals());

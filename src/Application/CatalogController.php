@@ -45,6 +45,27 @@ final class CatalogController
             'columns' => 1,
             'locations' => 'schools',
         ],
+        '/school.php' => [
+            'title' => 'Факультеты ВУЗа',
+            'parent' => 'school',
+            'next' => 'facultet',
+            'columns' => 1,
+            'locations' => 'facultets',
+        ],
+        '/facultet.php' => [
+            'title' => 'Отделения факультета',
+            'parent' => 'facultet',
+            'next' => 'division',
+            'columns' => 1,
+            'locations' => 'divisions',
+        ],
+        '/division.php' => [
+            'title' => 'Группы отделения',
+            'parent' => 'division',
+            'next' => 'sgroup',
+            'columns' => 3,
+            'locations' => 'groups',
+        ],
     ];
 
     /** @var list<string> */
@@ -97,18 +118,46 @@ final class CatalogController
         }
 
         $this->applySelection($request);
+        $this->applyListFilter($request, $page);
         $locations = $this->locationsFor($page);
 
         return new Response($this->renderer->render('catalog.php', [
             'title' => $page['title'],
+            'controls' => $this->controls($page),
             'table' => $this->locationTable($locations, $page['columns'], $page['next']),
-            'menu' => $this->menu(),
+            'menu' => $this->menu($page),
             'object' => $this->selectionHierarchy(),
             'message' => $this->flash('MESS', $request->query['mess'] ?? null),
             'error' => $this->flash('ERMESS', $request->query['ermess'] ?? null),
             'version' => Html::escape('версия 1.5' . (string) ($this->session['db_ver'] ?? '')),
             'styles' => $this->styles(),
         ]));
+    }
+
+    public function handles(Request $request): bool
+    {
+        if (!isset(self::PAGES[$request->path]) || $request->method !== 'GET') {
+            return false;
+        }
+        if ($request->path === '/school.php') {
+            return true;
+        }
+
+        $allowed = [
+            'country_id', 'region_id', 'city_id', 'school_id', 'facultet_id', 'division_id',
+            'sgroup_id', 'student_id', 'mess', 'ermess',
+        ];
+        if ($request->path === '/facultet.php') {
+            $allowed[] = 'fac1m';
+        }
+        if ($request->path === '/division.php') {
+            $allowed[] = 'div1m';
+            if (($request->query['divm'] ?? null) === '0' || ($request->query['divm'] ?? null) === 0) {
+                $allowed[] = 'divm';
+            }
+        }
+
+        return array_diff(array_keys($request->query), $allowed) === [];
     }
 
     /**
@@ -131,6 +180,9 @@ final class CatalogController
             'regions' => $this->repository()->regions($parentId),
             'cities' => $this->repository()->cities($parentId),
             'schools' => $this->repository()->schools($parentId),
+            'facultets' => $this->repository()->facultets($parentId),
+            'divisions' => $this->repository()->divisions($parentId, $this->activeFilter('fac1m')),
+            'groups' => $this->repository()->groups($parentId, $this->activeFilter('div1m')),
             default => throw new RuntimeException('Unknown catalog location type.'),
         };
     }
@@ -170,6 +222,33 @@ final class CatalogController
         }
     }
 
+    /** @param array{locations: string} $page */
+    private function applyListFilter(Request $request, array $page): void
+    {
+        $key = match ($page['locations']) {
+            'divisions' => 'fac1m',
+            'groups' => 'div1m',
+            default => null,
+        };
+        if ($key === null) {
+            return;
+        }
+
+        $value = $request->query[$key] ?? null;
+        if ((is_int($value) || is_string($value)) && in_array((string) $value, ['0', '1', '2'], true)) {
+            $this->session[$key] = (int) $value;
+        }
+    }
+
+    private function activeFilter(string $key): ?bool
+    {
+        return match ((int) ($this->session[$key] ?? 0)) {
+            0 => true,
+            1 => false,
+            default => null,
+        };
+    }
+
     private function validId(mixed $value): bool
     {
         return (is_int($value) && $value > 0)
@@ -194,7 +273,7 @@ final class CatalogController
                 $row++;
                 $table .= '<tr>';
             }
-            $color = $row % 2 === 0 ? 'col2' : 'col1';
+            $color = $this->rowColor($location, $row);
             $number = $index + 1;
             $name = Html::escape($location->name);
             $href = $next === null
@@ -231,6 +310,15 @@ final class CatalogController
         return $table . '</table>';
     }
 
+    private function rowColor(Location $location, int $row): string
+    {
+        if ($location->active === false) {
+            return $row % 2 === 0 ? 'col4' : 'col3';
+        }
+
+        return $row % 2 === 0 ? 'col2' : 'col1';
+    }
+
     private function selectionHierarchy(): string
     {
         $items = [];
@@ -254,9 +342,32 @@ final class CatalogController
         }
         $items[] = ['level' => 'region', 'location' => $region];
 
-        $cityId = $this->selectedId('city');
-        if ($cityId !== null && ($city = $this->find($this->repository()->cities($regionId), $cityId)) !== null) {
-            $items[] = ['level' => 'city', 'location' => $city];
+        $parents = [
+            'city' => [$this->repository()->cities($regionId), $this->selectedId('city')],
+            'school' => [null, $this->selectedId('school')],
+            'facultet' => [null, $this->selectedId('facultet')],
+            'division' => [null, $this->selectedId('division')],
+            'sgroup' => [null, $this->selectedId('sgroup')],
+        ];
+        $parentId = $regionId;
+        foreach ($parents as $level => [$locations, $selectedId]) {
+            if ($selectedId === null) {
+                break;
+            }
+            if ($locations === null) {
+                $locations = match ($level) {
+                    'school' => $this->repository()->schools($parentId),
+                    'facultet' => $this->repository()->facultets($parentId),
+                    'division' => $this->repository()->divisions($parentId),
+                    'sgroup' => $this->repository()->groups($parentId),
+                };
+            }
+            $location = $this->find($locations, $selectedId);
+            if ($location === null) {
+                break;
+            }
+            $items[] = ['level' => $level, 'location' => $location];
+            $parentId = $selectedId;
         }
 
         return $this->breadcrumbs($items);
@@ -281,7 +392,12 @@ final class CatalogController
         foreach ($items as $index => $item) {
             $level = $item['level'];
             $next = self::SELECTION_LEVELS[$index + 1] ?? null;
-            $name = Html::escape($item['location']->name);
+            $location = $item['location'];
+            $name = Html::escape(
+                in_array($level, ['school', 'facultet'], true) && $location->shortName !== null
+                    ? $location->shortName
+                    : $location->name,
+            );
             if ($next === null || !isset($this->session['du_' . $next])) {
                 $name = sprintf('<a href="%s.php">%s</a>', $level, $name);
             }
@@ -291,12 +407,13 @@ final class CatalogController
         return $html;
     }
 
-    private function menu(): string
+    /** @param array{locations: string} $page */
+    private function menu(array $page): string
     {
         $basketCount = (int) ($this->session['baskc'] ?? 0);
         $objectRoute = $this->objectRoute();
 
-        return sprintf(
+        $menu = sprintf(
             '<a href="bask.php">Корзина(%d)</a><br><hr>'
             . '<a id="curhr" href="%s">Объект</a><br>'
             . '<a href="doc.php">Документы</a><br>'
@@ -308,17 +425,82 @@ final class CatalogController
             $basketCount,
             $objectRoute,
         );
+
+        return $menu . $this->legacyActions($page['locations']);
     }
 
     private function objectRoute(): string
     {
-        foreach (['country' => 'earth', 'region' => 'country', 'city' => 'region', 'school' => 'city'] as $level => $route) {
+        foreach ([
+            'country' => 'earth',
+            'region' => 'country',
+            'city' => 'region',
+            'school' => 'city',
+            'facultet' => 'school',
+            'division' => 'facultet',
+            'sgroup' => 'division',
+        ] as $level => $route) {
             if ($this->selectedId($level) === null) {
                 return $route . '.php';
             }
         }
 
         return 'student.php';
+    }
+
+    /** @param array{locations: string} $page */
+    private function controls(array $page): string
+    {
+        return match ($page['locations']) {
+            'divisions' => $this->filterMenu('fac1m', 'Отделения:'),
+            'groups' => $this->divisionControls() . $this->filterMenu('div1m', 'Группы:'),
+            default => '',
+        };
+    }
+
+    private function divisionControls(): string
+    {
+        return '<table width="100%"><tr><td id="page"><b>Отделение:</b></td>'
+            . '<td id="curhr"><a id="curhr" href="division.php?divm=0">состав</a></td>'
+            . '<td id="page"><a href="division.php?divm=1">программа</a></td>'
+            . '<td width="100%" id="page"></td></tr></table>';
+    }
+
+    private function filterMenu(string $key, string $title): string
+    {
+        $selected = (int) ($this->session[$key] ?? 0);
+        $items = ['активные', 'выпущенные', 'все'];
+        $html = sprintf('<table width="100%%"><tr><td id="page"><b>%s</b></td>', $title);
+        foreach ($items as $index => $item) {
+            $id = $index === $selected ? 'curhr' : 'page';
+            $html .= sprintf(
+                '<td id="%s"><a%s href="%s.php?%s=%d">%s</a></td>',
+                $id,
+                $id === 'curhr' ? ' id="curhr"' : '',
+                $key === 'fac1m' ? 'facultet' : 'division',
+                $key,
+                $index,
+                $item,
+            );
+        }
+
+        return $html . '<td width="100%" id="page"></td></tr></table>';
+    }
+
+    private function legacyActions(string $locations): string
+    {
+        return match ($locations) {
+            'divisions' => '<a href="facultet.php?cont=1&excel=1">Контингент (Excel)</a><br>'
+                . '<a href="facultet.php?cont=1">Контингент</a><br>'
+                . '<a href="facultet.php?itog=1&excel=1">Итоги (Excel)</a><br>'
+                . '<a href="facultet.php?itog=1">Итоги</a><br><br>'
+                . '<a href="facultet.php?divadd=1">Добавить отделение</a><br>',
+            'groups' => '<a href="division.php?add=1">Добавить группу</a><br>'
+                . '<a href="division.php?vipusk=1">Выпуск</a><br>'
+                . '<a href="division.php?nextkurs=1">След. курс</a><br><br>'
+                . '<a href="division.php?dived=1">Изменить отделение</a><br>',
+            default => '',
+        };
     }
 
     private function flash(string $key, mixed $override): string

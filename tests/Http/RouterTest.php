@@ -38,4 +38,18 @@ final class RouterTest extends TestCase
 
         self::assertTrue($controller->called);
     }
+
+    public function testItKeepsTheLegacyPostHandlerWhenACatalogGetHandlerReplacesGet(): void
+    {
+        $router = new Router();
+        $router->any('/division.php', static fn (): string => 'legacy');
+        $router->get('/division.php', static fn (): string => 'catalog');
+
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REQUEST_URI'] = '/division.php';
+        self::assertSame('catalog', $router->dispatch(Request::fromGlobals()));
+
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        self::assertSame('legacy', $router->dispatch(Request::fromGlobals()));
+    }
 }

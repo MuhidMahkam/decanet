@@ -21,6 +21,7 @@
             <table id="main" cellspacing="0" height="100%" width="100%">
                 <tr height="100%"><td valign="top" width="100%">
                     <table width="100%"><tr><td id="prochead"><?= $title ?></td></tr></table>
+                    <?= $controls ?>
                     <?= $table ?>
                 </td></tr>
                 <tr><td align="right"><a href="http://saxoft/index.htm">(c)Saxoft</a></td></tr>
