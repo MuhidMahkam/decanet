@@ -92,11 +92,9 @@ function opendb(){
   global $HOST, $DBN, $GDB, $GDBL, $__loginLookup;
   $HOST = getenv('DB_HOST') ?: $HOST;
   $port = (int) (getenv('DB_PORT') ?: 3306);
-  $loginUser = getenv('DB_LOGIN_USER');
-  $loginPassword = getenv('DB_LOGIN_PASSWORD');
+  $loginUser = getenv('DB_LOGIN_USER') ?: 'guest';
+  $loginPassword = getenv('DB_LOGIN_PASSWORD') ?: 'guest';
   $usingLoginAccount = !empty($__loginLookup);
-  if((!isset($_SESSION['du_name']) || $usingLoginAccount) && (!is_string($loginUser) || $loginUser === '' || !is_string($loginPassword) || $loginPassword === ''))
-    throw new \RuntimeException('Database login credentials are not configured.');
   $user = isset($_SESSION['du_name']) && !$usingLoginAccount
     ? dc_decrypt($_SESSION['du_name'])
     : (string) $loginUser;
