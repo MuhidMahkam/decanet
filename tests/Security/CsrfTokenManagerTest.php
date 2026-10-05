@@ -22,4 +22,12 @@ final class CsrfTokenManagerTest extends TestCase
 
         (new CsrfTokenManager())->validate('expired-token');
     }
+
+    public function testItRejectsAMalformedToken(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Invalid CSRF token.');
+
+        (new CsrfTokenManager())->validate(['unexpected']);
+    }
 }

@@ -119,7 +119,7 @@ if($demouser)
 if(isset($_POST['user']) && isset($_POST['password'])){
   $first = false;
   try {
-    csrf_validate(isset($_POST['_csrf']) ? $_POST['_csrf'] : null);
+    csrf_validate($_POST['_csrf'] ?? null);
     getdbrowproc('GETRUINFO', array((string) $_POST['user'], (string) $_POST['password']), $row);
   } catch (\RuntimeException $exception) {
     $row = array();
@@ -154,7 +154,10 @@ if(isset($_POST['user']) && isset($_POST['password'])){
 if($first)
   head('Вход в систему:');
 else if($csrfFailure)
+{
+  $ERMESS = 'Проверка защищённой формы не пройдена. Обновите страницу и повторите вход.';
   head('Форма устарела. Обновите страницу и повторите вход.');
+}
 else
   head('Неверное имя, пароль или разовый код! Попытайтесь снова:');
 
