@@ -151,8 +151,12 @@ final class CatalogController
             $allowed[] = 'fac1m';
         }
         if ($request->path === '/division.php') {
+            $mode = $request->query['divm'] ?? $this->session['divm'] ?? 0;
+            if ((string) $mode !== '0') {
+                return false;
+            }
             $allowed[] = 'div1m';
-            if (($request->query['divm'] ?? null) === '0' || ($request->query['divm'] ?? null) === 0) {
+            if (array_key_exists('divm', $request->query)) {
                 $allowed[] = 'divm';
             }
         }
@@ -225,6 +229,10 @@ final class CatalogController
     /** @param array{locations: string} $page */
     private function applyListFilter(Request $request, array $page): void
     {
+        if ($page['locations'] === 'groups' && array_key_exists('divm', $request->query)) {
+            $this->session['divm'] = 0;
+        }
+
         $key = match ($page['locations']) {
             'divisions' => 'fac1m',
             'groups' => 'div1m',

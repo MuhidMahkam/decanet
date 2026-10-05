@@ -106,6 +106,11 @@ final class CatalogControllerTest extends TestCase
         self::assertTrue($controller->handles($this->request('/division.php', ['divm' => '0', 'div1m' => '2'])));
         self::assertFalse($controller->handles($this->request('/facultet.php', ['cont' => '1'])));
         self::assertFalse($controller->handles($this->request('/division.php', ['divm' => '1'])));
+
+        $programSession = ['du_id' => 7, 'expire' => 101, 'divm' => 1];
+        $programController = $this->controller($programSession);
+        self::assertFalse($programController->handles($this->request('/division.php')));
+        self::assertTrue($programController->handles($this->request('/division.php', ['divm' => '0'])));
     }
 
     public function testItEscapesCatalogNames(): void
