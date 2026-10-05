@@ -8,7 +8,7 @@ use mysqli;
 use mysqli_result;
 use RuntimeException;
 
-final class StoredProcedureRepository
+final class StoredProcedureRepository implements ProcedureCaller
 {
     public function __construct(private readonly mysqli $connection, private readonly string $database)
     {

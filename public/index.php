@@ -11,7 +11,7 @@ use Decanet\Infrastructure\Config\AppConfig;
 use Decanet\Infrastructure\ErrorHandler;
 use Decanet\Repository\LocationRepository;
 use Decanet\Repository\StoredProcedureLocationRepository;
-use Decanet\Repository\StoredProcedureRepository;
+use Decanet\Repository\PdoStoredProcedureRepository;
 use Decanet\Security\SessionManager;
 use Decanet\Security\LegacySessionDatabaseCredentials;
 use Decanet\View\TemplateRenderer;
@@ -33,19 +33,24 @@ $session =& $_SESSION;
 $catalogController = new CatalogController(
     static function () use ($config, &$session): LocationRepository {
         $credentials = LegacySessionDatabaseCredentials::fromSession($session);
-        $connection = new \mysqli(
-            $config->databaseHost,
+        $connection = new \PDO(
+            sprintf(
+                'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
+                $config->databaseHost,
+                $config->databasePort,
+                $config->databaseName,
+            ),
             $credentials->user,
             $credentials->password,
-            null,
-            $config->databasePort,
+            [
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                \PDO::ATTR_EMULATE_PREPARES => false,
+                \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+            ],
         );
-        if ($connection->connect_errno !== 0 || !$connection->set_charset('utf8')) {
-            throw new \RuntimeException('Unable to connect to the catalog database.');
-        }
 
         return new StoredProcedureLocationRepository(
-            new StoredProcedureRepository($connection, $config->databaseName),
+            new PdoStoredProcedureRepository($connection, $config->databaseName),
         );
     },
     new TemplateRenderer(dirname(__DIR__) . '/templates'),

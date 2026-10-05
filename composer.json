@@ -12,6 +12,7 @@
         "php": "^8.2",
         "ext-mbstring": "*",
         "ext-mysqli": "*",
+        "ext-pdo_mysql": "*",
         "chillerlan/php-qrcode": "^5.0",
         "chillerlan/php-authenticator": "^4.0"
     },

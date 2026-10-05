@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "34f14417cb3c68181ad89f9ee3c649d4",
+    "content-hash": "5d2ed4ee785a6838256e920415605300",
     "packages": [
         {
             "name": "chillerlan/php-authenticator",
@@ -2123,7 +2123,8 @@
     "platform": {
         "php": "^8.2",
         "ext-mbstring": "*",
-        "ext-mysqli": "*"
+        "ext-mysqli": "*",
+        "ext-pdo_mysql": "*"
     },
     "platform-dev": {},
     "plugin-api-version": "2.9.0"

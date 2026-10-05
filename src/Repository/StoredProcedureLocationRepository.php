@@ -8,7 +8,7 @@ use Decanet\Application\Location;
 
 final class StoredProcedureLocationRepository implements LocationRepository
 {
-    public function __construct(private readonly StoredProcedureRepository $procedures)
+    public function __construct(private readonly ProcedureCaller $procedures)
     {
     }
 
