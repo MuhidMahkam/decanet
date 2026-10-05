@@ -110,6 +110,10 @@ if($demouser)
 //если пользователь ввел имя и пароль
 if(isset($_POST['user']) && isset($_POST['password'])){
   $first = false;
+  $row = array();
+  $GDB = null;
+  $GDBL = null;
+  $__loginLookup = true;
   try {
     csrf_validate($_POST['_csrf'] ?? null);
     $lookupResult = getdbrowproc('GETRUINFO', array((string) $_POST['user'], (string) $_POST['password']), $row);
@@ -129,6 +133,8 @@ if(isset($_POST['user']) && isset($_POST['password'])){
     $row = array();
     $credentialsVerified = false;
     $authenticationUnavailable = true;
+  } finally {
+    $__loginLookup = false;
   }
 
   $vrow = $row;

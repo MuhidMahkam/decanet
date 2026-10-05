@@ -34,7 +34,7 @@ final class SessionCredentialCipher
         $tag = substr($payload, self::NONCE_LENGTH, self::TAG_LENGTH);
         $encrypted = substr($payload, self::NONCE_LENGTH + self::TAG_LENGTH);
         $decrypted = openssl_decrypt($encrypted, self::CIPHER, self::key(), OPENSSL_RAW_DATA, $nonce, $tag);
-        if (!is_string($decrypted) || $decrypted === '') {
+        if (!is_string($decrypted)) {
             throw new RuntimeException('Unable to decrypt authenticated database credentials.');
         }
 
