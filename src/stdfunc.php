@@ -135,6 +135,7 @@ function getdbrowproc($procedure, $parameters, &$row)
   $placeholders = implode(',', array_fill(0, count($parameters), '?'));
   $statement = $GDB->prepare("CALL `$DBN`.`$procedure`($placeholders)");
   if(!$statement){
+    error_log("Stored procedure $procedure preparation failed: " . $GDB->error);
     $ERMESS = 'Ошибка выполнения операции.';
     return false;
   }
@@ -148,6 +149,7 @@ function getdbrowproc($procedure, $parameters, &$row)
     $statement->bind_param($types, ...$values);
   }
   if(!$statement->execute()){
+    error_log("Stored procedure $procedure execution failed: " . $statement->error);
     $ERMESS = 'Ошибка выполнения операции.';
     $statement->close();
     return false;

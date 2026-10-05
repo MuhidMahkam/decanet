@@ -112,6 +112,8 @@ function dc_restore_session($rrow) {
 //первый вход
 $first = true;
 $csrfFailure = false;
+$authenticationUnavailable = false;
+$twoFactorFailure = false;
 if($demouser)
   $_POST['user'] = $_POST['password'] = 'demo';
 
@@ -120,10 +122,16 @@ if(isset($_POST['user']) && isset($_POST['password'])){
   $first = false;
   try {
     csrf_validate($_POST['_csrf'] ?? null);
-    getdbrowproc('GETRUINFO', array((string) $_POST['user'], (string) $_POST['password']), $row);
-  } catch (\RuntimeException $exception) {
+    $credentialsVerified = getdbrowproc('GETRUINFO', array((string) $_POST['user'], (string) $_POST['password']), $row);
+  } catch (\Decanet\Security\InvalidCsrfToken $exception) {
     $row = array();
-    $csrfFailure = $exception->getMessage() === 'Invalid CSRF token.';
+    $credentialsVerified = false;
+    $csrfFailure = true;
+  } catch (\RuntimeException $exception) {
+    error_log('Login credential lookup failed: ' . $exception->getMessage());
+    $row = array();
+    $credentialsVerified = false;
+    $authenticationUnavailable = true;
   }
 
   $vrow = $row;
@@ -133,6 +141,9 @@ if(isset($_POST['user']) && isset($_POST['password'])){
   //print_r($vrow); echo "<br>";
 
   //имя и пароль верны
+  if(!$csrfFailure && !$authenticationUnavailable && !$credentialsVerified)
+    $authenticationUnavailable = true;
+
   if(isset($vrow['DUSER_ID'])){
     
     if (isset($vrow['DU_2FA'])){  //если установлен ключ 2FA
@@ -141,7 +152,8 @@ if(isset($_POST['user']) && isset($_POST['password'])){
 
         dc_restore_session($vrow);
 
-      } 
+      } else
+        $twoFactorFailure = true;
     } else {
 
       dc_restore_session($vrow);
@@ -157,6 +169,16 @@ else if($csrfFailure)
 {
   $ERMESS = 'Проверка защищённой формы не пройдена. Обновите страницу и повторите вход.';
   head('Форма устарела. Обновите страницу и повторите вход.');
+}
+else if($authenticationUnavailable)
+{
+  $ERMESS = 'Не удалось проверить учётные данные. Проверьте подключение к базе данных и журнал ошибок сервера.';
+  head('Авторизация временно недоступна.');
+}
+else if($twoFactorFailure)
+{
+  $ERMESS = 'Разовый код не прошёл проверку.';
+  head('Введите новый разовый код и повторите вход.');
 }
 else
   head('Неверное имя, пароль или разовый код! Попытайтесь снова:');

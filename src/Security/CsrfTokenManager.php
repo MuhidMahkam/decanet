@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Decanet\Security;
 
-use RuntimeException;
-
 final class CsrfTokenManager
 {
     private const SESSION_KEY = '_csrf_token';
@@ -22,7 +20,7 @@ final class CsrfTokenManager
     public function validate(mixed $token): void
     {
         if (!is_string($token) || !hash_equals($this->token(), $token)) {
-            throw new RuntimeException('Invalid CSRF token.');
+            throw new InvalidCsrfToken('Invalid CSRF token.');
         }
     }
 }

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Decanet\Tests\Security;
 
 use Decanet\Security\CsrfTokenManager;
+use Decanet\Security\InvalidCsrfToken;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 
 final class CsrfTokenManagerTest extends TestCase
 {
@@ -17,7 +17,7 @@ final class CsrfTokenManagerTest extends TestCase
 
     public function testItRejectsAnExpiredOrInvalidToken(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(InvalidCsrfToken::class);
         $this->expectExceptionMessage('Invalid CSRF token.');
 
         (new CsrfTokenManager())->validate('expired-token');
@@ -25,7 +25,7 @@ final class CsrfTokenManagerTest extends TestCase
 
     public function testItRejectsAMalformedToken(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(InvalidCsrfToken::class);
         $this->expectExceptionMessage('Invalid CSRF token.');
 
         (new CsrfTokenManager())->validate(['unexpected']);
