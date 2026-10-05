@@ -30,4 +30,11 @@ final class CsrfTokenManagerTest extends TestCase
 
         (new CsrfTokenManager())->validate(['unexpected']);
     }
+
+    public function testItRejectsATokenWhenTheSessionTokenIsMissing(): void
+    {
+        $this->expectException(InvalidCsrfToken::class);
+
+        (new CsrfTokenManager())->validate('submitted-token');
+    }
 }

@@ -129,12 +129,12 @@ function getdbrowproc($procedure, $parameters, &$row)
 {
   global $DBN, $GDB, $ERMESS;
 
-  if(!$GDB)
-    opendb();
   if(!preg_match('/^[A-Z][A-Z0-9_]*$/', $procedure)){
     $ERMESS = 'Ошибка выполнения операции.';
-    return false;
+    return null;
   }
+  if(!$GDB)
+    opendb();
 
   $placeholders = implode(',', array_fill(0, count($parameters), '?'));
   $statement = $GDB->prepare("CALL `$DBN`.`$procedure`($placeholders)");

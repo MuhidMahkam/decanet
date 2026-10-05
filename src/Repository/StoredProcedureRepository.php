@@ -36,7 +36,10 @@ final class StoredProcedureRepository implements ProcedureCaller
             }
             $statement->bind_param($types, ...$bound);
         }
-        $statement->execute();
+        if (!$statement->execute()) {
+            $statement->close();
+            throw new RuntimeException('Unable to execute stored procedure.');
+        }
         $result = $statement->get_result();
         $rows = $result instanceof mysqli_result ? $result->fetch_all(MYSQLI_ASSOC) : [];
         while ($this->connection->more_results() && $this->connection->next_result()) {

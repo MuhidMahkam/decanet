@@ -19,7 +19,8 @@ final class CsrfTokenManager
 
     public function validate(mixed $token): void
     {
-        if (!is_string($token) || !hash_equals($this->token(), $token)) {
+        $expected = $_SESSION[self::SESSION_KEY] ?? null;
+        if (!is_string($expected) || !is_string($token) || !hash_equals($expected, $token)) {
             throw new InvalidCsrfToken('Invalid CSRF token.');
         }
     }

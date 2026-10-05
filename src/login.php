@@ -10,18 +10,6 @@ $body = '';
 //  $body = "<body onload=this.document.vvod.user.focus()>";
 
 
-// если не логин по бездействию то сбрасываем сессию
-/*
-if (!isset($_SESSION['expired_du_id'])) {
-  $_SESSION = array();
-  session_regenerate_id(true);
-  session_unset();
-  session_destroy();
-  echo "SESS DESTROY.";
-}
-*/
-
-
 $MENU = "<a href='//{$_SERVER['HTTP_HOST']}'>Выход</a>";
 
 function setdefsess($rrow) {   
@@ -80,6 +68,8 @@ function setdefsess($rrow) {
 function dc_restore_session($rrow) {   
   global $GDB, $GDBL, $OBJ, $__logintimeout__;
 
+  session_regenerate_id(true);
+
   //echo "RESTORE SESS ROW du_id: " . $rrow['DUSER_ID'] . " EXPIRED FLAG: " . isset($_SESSION['expired_du_id']) . "<br>";
 
   if (isset($_SESSION['expired_du_id']) && ($_SESSION['expired_du_id'] == $rrow['DUSER_ID'])) {
@@ -129,6 +119,11 @@ if(isset($_POST['user']) && isset($_POST['password'])){
     $row = array();
     $credentialsVerified = false;
     $csrfFailure = true;
+  } catch (\mysqli_sql_exception $exception) {
+    error_log('Login credential lookup failed: ' . $exception->getMessage());
+    $row = array();
+    $credentialsVerified = false;
+    $authenticationUnavailable = true;
   } catch (\RuntimeException $exception) {
     error_log('Login credential lookup failed: ' . $exception->getMessage());
     $row = array();
@@ -143,9 +138,6 @@ if(isset($_POST['user']) && isset($_POST['password'])){
   //print_r($vrow); echo "<br>";
 
   //имя и пароль верны
-  if(!$csrfFailure && !$authenticationUnavailable && !$credentialsVerified)
-    $authenticationUnavailable = true;
-
   if(isset($vrow['DUSER_ID'])){
     
     if (isset($vrow['DU_2FA'])){  //если установлен ключ 2FA

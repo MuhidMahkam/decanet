@@ -43,11 +43,11 @@ final class SessionCredentialCipher
 
     private static function key(): string
     {
-        $material = getenv('SESSION_CREDENTIAL_KEY') ?: getenv('DB_LOGIN_PASSWORD');
+        $material = getenv('SESSION_CREDENTIAL_KEY');
         if (!is_string($material) || $material === '') {
             throw new RuntimeException('Session credential encryption key is not configured.');
         }
 
-        return hash('sha256', $material, true);
+        return hash_hkdf('sha256', $material, 32, 'decanet-session-credentials');
     }
 }
