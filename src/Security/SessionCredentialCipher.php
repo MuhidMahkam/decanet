@@ -44,7 +44,7 @@ final class SessionCredentialCipher
     private static function key(): string
     {
         $material = getenv('SESSION_CREDENTIAL_KEY');
-        if (!is_string($material) || $material === '') {
+        if (!is_string($material) || strlen($material) < 32 || str_starts_with($material, 'replace-with-')) {
             throw new RuntimeException('Session credential encryption key is not configured.');
         }
 

@@ -12,7 +12,7 @@ final class SessionCredentialCipherTest extends TestCase
 {
     protected function setUp(): void
     {
-        putenv('SESSION_CREDENTIAL_KEY=test-key');
+        putenv('SESSION_CREDENTIAL_KEY=test-key-that-is-longer-than-thirty-two-characters');
     }
 
     protected function tearDown(): void

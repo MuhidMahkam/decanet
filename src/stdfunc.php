@@ -106,22 +106,22 @@ function opendb(){
 
   $GDB = new mysqli($HOST, $user, $pass, null, $port);
   if(mysqli_connect_errno()){
-    printf("Connect failed: %s\n", mysqli_connect_error());
-    exit;
+    error_log('Database connection failed: ' . mysqli_connect_error());
+    throw new \RuntimeException('Database connection failed.');
   }
   if(!$GDB->set_charset("utf8")){
-    printf("Error loading character set utf8: %s\n", $GDB->error);
-    exit;
+    error_log('Database character set configuration failed: ' . $GDB->error);
+    throw new \RuntimeException('Database character set configuration failed.');
   }
   $GDBL = new mysqli($HOST, $user, $pass, null, $port);
   if(mysqli_connect_errno()){
-    printf("Connect failed: %s\n", mysqli_connect_error());
-    exit;
+    error_log('Database log connection failed: ' . mysqli_connect_error());
+    throw new \RuntimeException('Database log connection failed.');
   }
 
   if(!$GDBL->set_charset("utf8")){
-    printf("Error loading character set utf8: %s\n", $GDBL->error);
-    exit;
+    error_log('Database log character set configuration failed: ' . $GDBL->error);
+    throw new \RuntimeException('Database log character set configuration failed.');
   }
 
 }

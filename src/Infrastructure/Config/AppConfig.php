@@ -69,7 +69,9 @@ final class AppConfig
             if (preg_match('/^[A-Z][A-Z0-9_]*$/', $name) !== 1) {
                 throw new RuntimeException('Invalid environment variable name.');
             }
-            putenv(sprintf('%s=%s', $name, trim($value, " \t\n\r\0\x0B\"'")));
+            if (getenv($name) === false) {
+                putenv(sprintf('%s=%s', $name, trim($value, " \t\n\r\0\x0B\"'")));
+            }
         }
     }
 }
