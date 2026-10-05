@@ -135,6 +135,12 @@ if(isset($_POST['user']) && isset($_POST['password'])){
     $authenticationUnavailable = true;
   } finally {
     $__loginLookup = false;
+    if ($GDB instanceof \mysqli)
+      $GDB->close();
+    if ($GDBL instanceof \mysqli)
+      $GDBL->close();
+    $GDB = null;
+    $GDBL = null;
   }
 
   $vrow = $row;
